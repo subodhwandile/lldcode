@@ -7615,6 +7615,362 @@ console.log("System initialized:", system.constructor.name);`,
       },
     ],
   },
+  {
+    id: "49",
+    slug: "design-cricbuzz",
+    title: "Design Cricbuzz — Live Cricket Score Platform",
+    difficulty: "Hard",
+    category: "Real World Systems",
+    tags: ["Observer Pattern", "Live Updates", "Pub-Sub", "Real-time", "Sports Domain"],
+    order: 49,
+    description: `## Problem Statement
+
+Design a live cricket score platform like Cricbuzz that tracks ongoing matches in real-time and notifies subscribers of score updates, wickets, milestones, and match results.
+
+## Design Requirements
+
+### Functional Requirements
+- Multiple simultaneous matches (Test, ODI, T20) running in parallel
+- Ball-by-ball score updates: runs scored, wicket fell, extras, over completion
+- Match state: innings, batting/bowling teams, current batsmen, current bowlers
+- Scorecard: per-batsman (runs, balls, 4s, 6s, SR), per-bowler (overs, runs, wickets, economy)
+- Commentary feed: auto-generated ball-by-ball commentary string
+- Subscribe/unsubscribe to a match — receive push notifications on key events (wicket, milestone, over)
+- Milestone detection: 50s, 100s, 5-wicket hauls, hat-tricks
+- Match result: target calculation, win by runs/wickets, tie/super over
+- Points table update after match completion
+- Search matches by status (LIVE, UPCOMING, COMPLETED), team, or date
+
+### Non-Functional Requirements
+- Thread-safe concurrent match updates
+- Singleton CricbuzzSystem
+- Observer pattern for real-time subscriber notifications
+
+## Key Entities
+- **Match**: id, type (TEST/ODI/T20), team1, team2, venue, status, innings[], currentInnings
+- **Innings**: battingTeam, bowlingTeam, balls[], totalRuns, totalWickets, overs
+- **Ball**: over, ball, bowler, batsman, runs, isWicket, wicketType, extras, commentary
+- **Batsman**: player, runs, balls, fours, sixes, isOut, dismissalInfo
+- **Bowler**: player, overs, maidens, runsConceded, wickets
+- **Player**: id, name, country, role (BATSMAN/BOWLER/ALL_ROUNDER/WK)
+- **Team**: id, name, country, players, captain, wicketKeeper
+- **Subscriber**: userId, matchId, notificationPreferences (ALL / WICKETS_ONLY / MILESTONES)
+- **CricbuzzSystem**: Singleton; manages matches, teams, players, subscriptions
+
+## Design Patterns to Apply
+- **Observer**: subscribers notified on every ball, wicket, milestone
+- **Strategy**: different scoring rules for TEST vs ODI vs T20
+- **Factory**: create different match types
+- **Singleton**: CricbuzzSystem as the central registry`,
+    constraints: `- Each over has exactly 6 legal deliveries (wides/no-balls don\'t count)
+- Test match: 2 innings per team; ODI: 50 overs; T20: 20 overs per side
+- A batsman is out only once per innings
+- Wicket types: BOWLED, CAUGHT, LBW, RUN_OUT, STUMPED, HIT_WICKET
+- Thread-safe ball-by-ball updates
+- Subscribers only notified for their chosen match and preference level`,
+    hints: [
+      "Model Ball as an immutable value object — once a ball is bowled, its record never changes. Append to innings.balls[] list.",
+      "Use Observer pattern: Match extends Observable, each Subscriber implements Observer. On ball delivery, match notifies all subscribers filtered by NotificationPreference.",
+      "Scorecard is computed on-the-fly from the balls[] list — derive runs, wickets, economy from the ball log rather than storing redundant aggregates.",
+      "For milestone detection, check after every ball update: if batsman.runs crosses 50/100 or bowler.wickets reaches 5, emit a MILESTONE event to observers.",
+    ],
+    starterCode: {
+      java: `import java.util.*;
+import java.util.concurrent.*;
+
+// Design Cricbuzz — Live Cricket Score Platform
+
+public class Main {
+    public static void main(String[] args) {
+        CricbuzzSystem system = CricbuzzSystem.getInstance();
+        Team india = new Team("IND", "India");
+        Team australia = new Team("AUS", "Australia");
+        Match match = system.createMatch(MatchType.T20, india, australia, "MCG");
+        system.subscribe(match.getId(), "user1", NotificationPreference.ALL);
+        BallResult ball = new BallResult("Bumrah", "Warner", 6, false, null, "SIX! Over mid-wicket!");
+        system.deliverBall(match.getId(), ball);
+        system.printScorecard(match.getId());
+    }
+}
+
+enum MatchType { TEST, ODI, T20 }
+enum WicketType { BOWLED, CAUGHT, LBW, RUN_OUT, STUMPED, HIT_WICKET }
+enum MatchStatus { UPCOMING, LIVE, COMPLETED }
+enum NotificationPreference { ALL, WICKETS_ONLY, MILESTONES }
+
+class Player {
+    String id, name, country;
+    public Player(String id, String name, String country) {
+        this.id = id; this.name = name; this.country = country;
+    }
+}
+
+class Team {
+    String id, name;
+    List<Player> players = new ArrayList<>();
+    public Team(String id, String name) { this.id = id; this.name = name; }
+}
+
+class BallResult {
+    String bowler, batsman, commentary;
+    int runs;
+    boolean isWicket;
+    WicketType wicketType;
+    public BallResult(String bowler, String batsman, int runs, boolean isWicket,
+                      WicketType wicketType, String commentary) {
+        this.bowler = bowler; this.batsman = batsman; this.runs = runs;
+        this.isWicket = isWicket; this.wicketType = wicketType; this.commentary = commentary;
+    }
+}
+
+class Match {
+    private String id;
+    private MatchType type;
+    private Team team1, team2;
+    private MatchStatus status = MatchStatus.UPCOMING;
+    private List<BallResult> balls = new ArrayList<>();
+    private List<Map.Entry<String, NotificationPreference>> subscribers = new ArrayList<>();
+
+    public Match(String id, MatchType type, Team t1, Team t2, String venue) {
+        this.id = id; this.type = type; this.team1 = t1; this.team2 = t2;
+    }
+    public String getId() { return id; }
+    public void addBall(BallResult ball) {
+        balls.add(ball);
+        status = MatchStatus.LIVE;
+        notifySubscribers(ball);
+    }
+    public void addSubscriber(String userId, NotificationPreference pref) {
+        subscribers.add(Map.entry(userId, pref));
+    }
+    private void notifySubscribers(BallResult ball) {
+        for (var entry : subscribers) {
+            NotificationPreference pref = entry.getValue();
+            if (pref == NotificationPreference.ALL ||
+                (pref == NotificationPreference.WICKETS_ONLY && ball.isWicket)) {
+                System.out.println("  -> Notify " + entry.getKey() + ": " + ball.commentary);
+            }
+        }
+    }
+    public int getTotalRuns() { return balls.stream().mapToInt(b -> b.runs).sum(); }
+    public int getTotalWickets() { return (int) balls.stream().filter(b -> b.isWicket).count(); }
+    public void printScorecard() {
+        System.out.println(team1.name + " vs " + team2.name);
+        System.out.println("Score: " + getTotalRuns() + "/" + getTotalWickets() + " (" + balls.size() + " balls)");
+    }
+}
+
+class CricbuzzSystem {
+    private static CricbuzzSystem instance;
+    private Map<String, Match> matches = new ConcurrentHashMap<>();
+    private int counter = 1;
+    private CricbuzzSystem() {}
+    public static synchronized CricbuzzSystem getInstance() {
+        if (instance == null) instance = new CricbuzzSystem();
+        return instance;
+    }
+    public Match createMatch(MatchType type, Team t1, Team t2, String venue) {
+        String id = "MATCH-" + counter++;
+        Match match = new Match(id, type, t1, t2, venue);
+        matches.put(id, match);
+        return match;
+    }
+    public void subscribe(String matchId, String userId, NotificationPreference pref) {
+        Match m = matches.get(matchId);
+        if (m != null) { m.addSubscriber(userId, pref); System.out.println(userId + " subscribed"); }
+    }
+    public synchronized void deliverBall(String matchId, BallResult ball) {
+        Match m = matches.get(matchId);
+        if (m != null) { System.out.println("Ball: " + ball.commentary); m.addBall(ball); }
+    }
+    public void printScorecard(String matchId) {
+        Match m = matches.get(matchId);
+        if (m != null) m.printScorecard();
+    }
+}`,
+      cpp: `#include <iostream>
+#include <vector>
+#include <map>
+#include <string>
+#include <memory>
+#include <mutex>
+using namespace std;
+
+// Design Cricbuzz — Live Cricket Score Platform
+
+enum class MatchType { TEST, ODI, T20 };
+enum class WicketType { BOWLED, CAUGHT, LBW, RUN_OUT, STUMPED, HIT_WICKET };
+enum class NotificationPreference { ALL, WICKETS_ONLY, MILESTONES };
+
+struct BallResult {
+    string bowler, batsman, commentary;
+    int runs;
+    bool isWicket;
+};
+
+struct Team { string id, name; };
+
+class Match {
+    string id;
+    Team team1, team2;
+    vector<BallResult> balls;
+    vector<pair<string, NotificationPreference>> subscribers;
+    mutex mtx;
+public:
+    Match(string id, Team t1, Team t2) : id(id), team1(t1), team2(t2) {}
+    string getId() const { return id; }
+
+    void subscribe(const string& userId, NotificationPreference pref) {
+        subscribers.push_back({userId, pref});
+    }
+
+    void deliverBall(const BallResult& ball) {
+        lock_guard<mutex> lock(mtx);
+        balls.push_back(ball);
+        cout << "Ball: " << ball.commentary << endl;
+        for (auto& [uid, pref] : subscribers)
+            if (pref == NotificationPreference::ALL ||
+                (pref == NotificationPreference::WICKETS_ONLY && ball.isWicket))
+                cout << "  -> Notify " << uid << endl;
+    }
+
+    void printScorecard() const {
+        int runs = 0, wkts = 0;
+        for (auto& b : balls) { runs += b.runs; if (b.isWicket) wkts++; }
+        cout << team1.name << " vs " << team2.name
+             << " | " << runs << "/" << wkts << " (" << balls.size() << " balls)" << endl;
+    }
+};
+
+class CricbuzzSystem {
+    static CricbuzzSystem* instance;
+    static mutex mtx;
+    map<string, shared_ptr<Match>> matches;
+    int counter = 1;
+    CricbuzzSystem() {}
+public:
+    static CricbuzzSystem* getInstance() {
+        lock_guard<mutex> lock(mtx);
+        if (!instance) instance = new CricbuzzSystem();
+        return instance;
+    }
+    shared_ptr<Match> createMatch(MatchType type, Team t1, Team t2) {
+        string id = "MATCH-" + to_string(counter++);
+        auto m = make_shared<Match>(id, t1, t2);
+        matches[id] = m;
+        return m;
+    }
+};
+CricbuzzSystem* CricbuzzSystem::instance = nullptr;
+mutex CricbuzzSystem::mtx;
+
+int main() {
+    auto sys = CricbuzzSystem::getInstance();
+    Team india{"IND","India"}, aus{"AUS","Australia"};
+    auto match = sys->createMatch(MatchType::T20, india, aus);
+    match->subscribe("user1", NotificationPreference::ALL);
+    match->subscribe("user2", NotificationPreference::WICKETS_ONLY);
+    match->deliverBall({"Bumrah","Warner","SIX! Over mid-wicket!",6,false});
+    match->deliverBall({"Bumrah","Warner","OUT! Bowled!",0,true});
+    match->printScorecard();
+    return 0;
+}`,
+      javascript: `// Design Cricbuzz — Live Cricket Score Platform
+
+const NotificationPreference = { ALL: 'ALL', WICKETS_ONLY: 'WICKETS_ONLY', MILESTONES: 'MILESTONES' };
+
+class Match {
+  constructor(id, type, team1, team2, venue) {
+    this.id = id; this.type = type;
+    this.team1 = team1; this.team2 = team2; this.venue = venue;
+    this.balls = []; this.subscribers = [];
+  }
+
+  subscribe(userId, pref = NotificationPreference.ALL) {
+    this.subscribers.push({ userId, pref });
+    console.log(\`\${userId} subscribed [\${pref}]\`);
+  }
+
+  deliverBall({ bowler, batsman, runs, isWicket, wicketType, commentary }) {
+    const ball = { bowler, batsman, runs, isWicket, wicketType, commentary };
+    this.balls.push(ball);
+    console.log('Ball:', commentary);
+    this._notify(ball);
+    this._checkMilestones(batsman);
+  }
+
+  _notify(ball) {
+    for (const { userId, pref } of this.subscribers) {
+      if (pref === NotificationPreference.ALL ||
+          (pref === NotificationPreference.WICKETS_ONLY && ball.isWicket))
+        console.log(\`  -> Notify \${userId}: \${ball.commentary}\`);
+    }
+  }
+
+  _checkMilestones(batsman) {
+    const runs = this.balls.filter(b => b.batsman === batsman && !b.isWicket)
+                          .reduce((s, b) => s + b.runs, 0);
+    if (runs === 50 || runs === 100) {
+      console.log(\`MILESTONE: \${batsman} reaches \${runs}!\`);
+      for (const { userId, pref } of this.subscribers)
+        if (pref === NotificationPreference.ALL || pref === NotificationPreference.MILESTONES)
+          console.log(\`  -> Milestone notify \${userId}\`);
+    }
+  }
+
+  printScorecard() {
+    const runs = this.balls.reduce((s, b) => s + b.runs, 0);
+    const wickets = this.balls.filter(b => b.isWicket).length;
+    console.log(\`=== \${this.team1} vs \${this.team2} ===\`);
+    console.log(\`Score: \${runs}/\${wickets} (\${this.balls.length} balls)\`);
+  }
+}
+
+class CricbuzzSystem {
+  constructor() {
+    if (CricbuzzSystem._instance) return CricbuzzSystem._instance;
+    this.matches = new Map(); this.counter = 1;
+    CricbuzzSystem._instance = this;
+  }
+  createMatch(type, team1, team2, venue) {
+    const id = \`MATCH-\${this.counter++}\`;
+    const match = new Match(id, type, team1, team2, venue);
+    this.matches.set(id, match);
+    return match;
+  }
+}
+
+// Test
+const sys = new CricbuzzSystem();
+const match = sys.createMatch('T20', 'India', 'Australia', 'MCG');
+match.subscribe('user1', NotificationPreference.ALL);
+match.subscribe('user2', NotificationPreference.WICKETS_ONLY);
+match.deliverBall({ bowler: 'Bumrah', batsman: 'Warner', runs: 6, isWicket: false, wicketType: null, commentary: 'SIX! Over mid-wicket!' });
+match.deliverBall({ bowler: 'Bumrah', batsman: 'Warner', runs: 0, isWicket: true, wicketType: 'BOWLED', commentary: 'OUT! Bowled through the gate!' });
+match.printScorecard();`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "design-cricbuzz-tc1",
+        description: "Ball-by-ball scoring and scorecard",
+        input: "T20 match: India vs Australia. Deliver 3 balls: 4 runs (no wicket), 6 runs (no wicket), 0 runs (wicket - BOWLED). Print scorecard.",
+        expectedOutput: "Score: 10/1. Balls: 3. Commentary logged for each delivery. Wicket triggers WICKETS_ONLY subscriber notification.",
+        isHidden: false,
+      },
+      {
+        id: "design-cricbuzz-tc2",
+        description: "Milestone notification and subscriber filtering",
+        input: "User1 subscribed ALL, User2 WICKETS_ONLY. Batsman scores 50 runs across multiple balls. Then gets out.",
+        expectedOutput: "User1 notified on every ball + milestone (50 runs reached). User2 notified only on the wicket ball.",
+        isHidden: true,
+      },
+    ],
+  },
 ];
 
 export function getProblemBySlug(slug: string): Problem | undefined {
