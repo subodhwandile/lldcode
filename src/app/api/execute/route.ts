@@ -4,7 +4,7 @@ import { auth } from "@/auth";
 
 // Judge0 CE language IDs
 const LANG_CONFIG: Record<string, { id: number; fileName: string }> = {
-  java:       { id: 62,  fileName: "Main.java"  },
+  java:       { id: 91,  fileName: "Main.java"  },
   cpp:        { id: 54,  fileName: "main.cpp"   },
   javascript: { id: 93,  fileName: "index.js"   },
 };
