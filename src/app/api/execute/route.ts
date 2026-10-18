@@ -2,47 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { auth } from "@/auth";
 
-const PISTON_URL = "https://emkc.org/api/v2/piston/execute";
-
-const LANG_CONFIG: Record<string, { pistonLang: string; version: string; fileName: string }> = {
-  java:       { pistonLang: "java",       version: "15.0.2",  fileName: "Main.java"  },
-  cpp:        { pistonLang: "c++",        version: "10.2.0",  fileName: "main.cpp"   },
-  javascript: { pistonLang: "javascript", version: "18.15.0", fileName: "index.js"   },
+// Judge0 CE language IDs
+const LANG_CONFIG: Record<string, { id: number; fileName: string }> = {
+  java:       { id: 62,  fileName: "Main.java"  },
+  cpp:        { id: 54,  fileName: "main.cpp"   },
+  javascript: { id: 93,  fileName: "index.js"   },
 };
 
-async function executeWithPiston(lang: string, code: string): Promise<{ output: string; exitCode: number }> {
-  const config = LANG_CONFIG[lang];
+const JUDGE0_URL = "https://ce.judge0.com";
 
-  const res = await fetch(PISTON_URL, {
+async function executeWithJudge0(language: string, code: string): Promise<{ output: string; exitCode: number }> {
+  const config = LANG_CONFIG[language];
+
+  // Submit the code
+  const submitRes = await fetch(`${JUDGE0_URL}/submissions?base64_encoded=false&wait=true`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      language: config.pistonLang,
-      version: config.version,
-      files: [{ name: config.fileName, content: code }],
+      language_id: config.id,
+      source_code: code,
       stdin: "",
-      args: [],
-      compile_timeout: 15000,
-      run_timeout: 10000,
-      compile_memory_limit: -1,
-      run_memory_limit: -1,
+      cpu_time_limit: 10,
+      wall_time_limit: 20,
+      memory_limit: 256000,
     }),
-    signal: AbortSignal.timeout(25000),
+    signal: AbortSignal.timeout(30000),
   });
 
-  if (!res.ok) {
-    throw new Error(`Piston returned ${res.status}`);
+  if (!submitRes.ok) {
+    throw new Error(`Judge0 submit failed: ${submitRes.status}`);
   }
 
-  const result = await res.json();
+  const result = await submitRes.json();
 
-  // Combine compile + run output
-  const compileOut = (result.compile?.output || "") + (result.compile?.stderr || "");
-  const runOut     = (result.run?.output    || "") + (result.run?.stderr    || "");
-  const output     = compileOut + runOut || "(no output)";
-  const exitCode   = result.run?.code ?? result.compile?.code ?? 1;
+  // status 3 = Accepted, others = various errors
+  const stdout   = result.stdout   || "";
+  const stderr   = result.stderr   || "";
+  const compileErr = result.compile_output || "";
+  const output   = stdout + stderr + compileErr || "(no output)";
+  const exitCode = result.status?.id === 3 ? 0 : 1;
 
-  return { output, exitCode };
+  return { output: output.trim(), exitCode };
 }
 
 export async function POST(req: NextRequest) {
@@ -62,9 +62,9 @@ export async function POST(req: NextRequest) {
     let exitCode = 1;
 
     try {
-      ({ output, exitCode } = await executeWithPiston(language, code));
+      ({ output, exitCode } = await executeWithJudge0(language, code));
     } catch (err) {
-      console.error("Piston error:", err);
+      console.error("Judge0 error:", err);
       return NextResponse.json(
         { error: "Code execution service unavailable. Please try again in a moment." },
         { status: 503 }
