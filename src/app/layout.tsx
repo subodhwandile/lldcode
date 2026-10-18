@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   description:
     "Practice Low Level Design and Machine Coding interview problems. Design Parking Lots, ATMs, Elevators, and more with a real code editor and test cases.",
   keywords: ["low level design", "machine coding", "OOD interview", "system design", "LLD", "object oriented design"],
+  verification: {
+    google: "1m7z_2xRFQtVtCAgrX28gjShdky8yqj0-0R6SaFr3c0",
+  },
 };
 
 export default function RootLayout({
