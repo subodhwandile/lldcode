@@ -7,6 +7,7 @@ import { getProblemsOrdered } from "@/lib/problems";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, User } from "lucide-react";
+import { SubmissionHeatmap } from "@/components/SubmissionHeatmap";
 
 export const metadata = {
   title: "Profile — LLDCode",
@@ -32,9 +33,11 @@ export default async function ProfilePage() {
 
   const problems = getProblemsOrdered().filter((p) => p.order > 0);
   const solvedIds = new Set(progress.filter((p) => p.status === "solved").map((p) => p.problemId));
-  const attemptedIds = new Set(progress.filter((p) => p.status === "attempted").map((p) => p.problemId));
 
   const solvedCount = solvedIds.size;
+  const easySolved = problems.filter((p) => p.difficulty === "Easy" && solvedIds.has(p.id)).length;
+  const mediumSolved = problems.filter((p) => p.difficulty === "Medium" && solvedIds.has(p.id)).length;
+  const hardSolved = problems.filter((p) => p.difficulty === "Hard" && solvedIds.has(p.id)).length;
   const easyTotal = problems.filter((p) => p.difficulty === "Easy").length;
   const mediumTotal = problems.filter((p) => p.difficulty === "Medium").length;
   const hardTotal = problems.filter((p) => p.difficulty === "Hard").length;
@@ -58,12 +61,12 @@ export default async function ProfilePage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
           { label: "Solved", value: solvedCount, total: problems.length, color: "text-emerald-400" },
           { label: "Submissions", value: submissionCount, color: "text-indigo-400" },
-          { label: "Easy", value: problems.filter(p => p.difficulty === "Easy" && [...solvedIds].length > 0).length, total: easyTotal, color: "text-emerald-400" },
-          { label: "Medium", value: problems.filter(p => p.difficulty === "Medium" && [...solvedIds].length > 0).length, total: mediumTotal, color: "text-amber-400" },
+          { label: "Easy", value: easySolved, total: easyTotal, color: "text-emerald-400" },
+          { label: "Medium", value: mediumSolved, total: mediumTotal, color: "text-amber-400" },
         ].map((stat) => (
           <div key={stat.label} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
             <div className={`text-2xl font-bold ${stat.color}`}>
@@ -75,12 +78,26 @@ export default async function ProfilePage() {
         ))}
       </div>
 
+      {/* Hard solved (separate, smaller) */}
+      {hardTotal > 0 && (
+        <div className="mb-6 flex items-center gap-2">
+          <span className="text-xs text-zinc-500">Hard:</span>
+          <span className="text-sm font-semibold text-red-400">{hardSolved}</span>
+          <span className="text-xs text-zinc-600">/{hardTotal}</span>
+        </div>
+      )}
+
+      {/* Submission Heatmap */}
+      <div className="mb-8">
+        <SubmissionHeatmap />
+      </div>
+
       {/* Problem progress list */}
       <h2 className="text-base font-semibold text-white mb-4">Problem Progress</h2>
       <div className="border border-zinc-800 rounded-xl overflow-hidden divide-y divide-zinc-800">
         {problems.map((problem) => {
           const progressItem = progress.find((p) => p.problemId === problem.id);
-          const status = progressItem?.status;
+          const pStatus = progressItem?.status;
 
           return (
             <Link
@@ -89,9 +106,9 @@ export default async function ProfilePage() {
               className="flex items-center gap-4 px-5 py-3 hover:bg-zinc-800/50 transition-colors group"
             >
               <div className="w-5 shrink-0">
-                {status === "solved" ? (
+                {pStatus === "solved" ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                ) : status === "attempted" ? (
+                ) : pStatus === "attempted" ? (
                   <Clock className="w-4 h-4 text-amber-500" />
                 ) : (
                   <div className="w-4 h-4 rounded-full border border-zinc-700" />

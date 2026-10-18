@@ -5,13 +5,13 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Problem } from "@/lib/problems";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, CheckCircle2, Lock, BookOpen, List, History } from "lucide-react";
+import { Lightbulb, CheckCircle2, Lock, BookOpen, List, History, FileText, Code2 } from "lucide-react";
 
 interface ProblemPanelProps {
   problem: Problem;
 }
 
-type Tab = "description" | "hints" | "testcases" | "submissions";
+type Tab = "description" | "hints" | "testcases" | "submissions" | "notes" | "solution";
 
 interface Submission {
   id: string;
@@ -22,19 +22,40 @@ interface Submission {
   code: string;
 }
 
+function notesKey(slug: string) {
+  return `lldnotes:${slug}`;
+}
+
 export function ProblemPanel({ problem }: ProblemPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("description");
   const [revealedHints, setRevealedHints] = useState<number[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
   const [expandedCode, setExpandedCode] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [hasSolved, setHasSolved] = useState(false);
+
+  // Load notes and solved state from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(notesKey(problem.slug));
+      if (saved) setNotes(saved);
+      if (localStorage.getItem(`lldsolved:${problem.slug}`) === "true") setHasSolved(true);
+    } catch {}
+  }, [problem.slug]);
 
   const fetchSubmissions = async () => {
     setLoadingSubmissions(true);
     try {
       const res = await fetch(`/api/submissions/${problem.slug}`);
       const data = await res.json();
-      setSubmissions(data.submissions || []);
+      const subs = data.submissions || [];
+      setSubmissions(subs);
+      if (subs.some((s: Submission) => s.status === "Accepted")) {
+        setHasSolved(true);
+        try { localStorage.setItem(`lldsolved:${problem.slug}`, "true"); } catch {}
+      }
     } catch {
       setSubmissions([]);
     } finally {
@@ -47,6 +68,14 @@ export function ProblemPanel({ problem }: ProblemPanelProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
+  const saveNotes = () => {
+    try {
+      localStorage.setItem(notesKey(problem.slug), notes);
+      setNotesSaved(true);
+      setTimeout(() => setNotesSaved(false), 2000);
+    } catch {}
+  };
+
   const revealHint = (i: number) => {
     if (!revealedHints.includes(i)) {
       setRevealedHints([...revealedHints, i]);
@@ -58,6 +87,8 @@ export function ProblemPanel({ problem }: ProblemPanelProps) {
     { id: "hints", label: `Hints (${problem.hints.length})`, icon: <Lightbulb className="w-3.5 h-3.5" /> },
     { id: "testcases", label: "Test Cases", icon: <List className="w-3.5 h-3.5" /> },
     { id: "submissions", label: "Submissions", icon: <History className="w-3.5 h-3.5" /> },
+    { id: "notes", label: "Notes", icon: <FileText className="w-3.5 h-3.5" /> },
+    { id: "solution", label: "Solution", icon: <Code2 className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -84,12 +115,12 @@ export function ProblemPanel({ problem }: ProblemPanelProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-zinc-800 bg-zinc-900/50">
+      <div className="flex border-b border-zinc-800 bg-zinc-900/50 overflow-x-auto scrollbar-none">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors relative ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium transition-colors relative whitespace-nowrap ${
               activeTab === tab.id
                 ? "text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-indigo-500"
                 : "text-zinc-500 hover:text-zinc-300"
@@ -244,6 +275,81 @@ export function ProblemPanel({ problem }: ProblemPanelProps) {
             )}
           </div>
         )}
+
+        {activeTab === "notes" && (
+          <div className="px-5 py-5 flex flex-col gap-3" style={{ minHeight: "calc(100% - 1px)" }}>
+            <p className="text-xs text-zinc-600">
+              Personal notes for this problem — saved locally in your browser.
+            </p>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Write your approach, insights, key patterns…"
+              className="flex-1 min-h-[260px] w-full bg-zinc-900 border border-zinc-800 rounded-lg p-4 text-sm text-zinc-200 placeholder-zinc-700 focus:outline-none focus:border-indigo-600 resize-none leading-relaxed font-mono"
+            />
+            <button
+              onClick={saveNotes}
+              className={`self-start text-xs px-4 py-2 rounded-md font-medium transition-colors ${
+                notesSaved
+                  ? "bg-emerald-900/50 text-emerald-400 border border-emerald-800"
+                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700"
+              }`}
+            >
+              {notesSaved ? "Saved!" : "Save Notes"}
+            </button>
+          </div>
+        )}
+
+        {activeTab === "solution" && (
+          <div className="px-5 py-5">
+            {hasSolved ? (
+              <SolutionContent problem={problem} />
+            ) : (
+              <div className="text-center py-12">
+                <Lock className="w-8 h-8 text-zinc-700 mx-auto mb-3" />
+                <p className="text-sm text-zinc-400 font-medium mb-1">Solution Locked</p>
+                <p className="text-xs text-zinc-600 max-w-xs mx-auto">
+                  Submit an accepted solution to unlock the reference implementation.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SolutionContent({ problem }: { problem: Problem }) {
+  const [lang, setLang] = useState<"java" | "cpp" | "javascript">("java");
+  const langLabels = { java: "Java", cpp: "C++", javascript: "JavaScript" };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-zinc-500 uppercase tracking-wider">Language:</span>
+        {(["java", "cpp", "javascript"] as const).map((l) => (
+          <button
+            key={l}
+            onClick={() => setLang(l)}
+            className={`text-xs px-3 py-1 rounded-md font-medium transition-colors ${
+              lang === l
+                ? "bg-indigo-600 text-white"
+                : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+            }`}
+          >
+            {langLabels[l]}
+          </button>
+        ))}
+      </div>
+      <div className="rounded-lg overflow-hidden border border-zinc-800">
+        <div className="bg-zinc-900 px-4 py-2 border-b border-zinc-800 flex items-center gap-2">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+          <span className="text-xs text-zinc-400 font-medium">Reference Solution — {langLabels[lang]}</span>
+        </div>
+        <pre className="text-xs font-mono text-zinc-300 bg-zinc-950 p-4 overflow-x-auto leading-relaxed max-h-[500px] overflow-y-auto">
+          {problem.solution[lang] || "Solution not available for this language."}
+        </pre>
       </div>
     </div>
   );

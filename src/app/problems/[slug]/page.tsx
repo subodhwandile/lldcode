@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getProblemBySlug, getProblemsOrdered } from "@/lib/problems";
 import { ProblemPanel } from "@/components/ProblemPanel";
 import { CodeEditor } from "@/components/CodeEditor";
+import { ResizableProblemLayout } from "@/components/ResizableProblemLayout";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -28,19 +29,16 @@ export default async function ProblemPage({ params }: Props) {
   if (!problem) notFound();
 
   return (
-    <div className="flex h-[calc(100vh-56px)] overflow-hidden">
-      {/* Left panel — Problem */}
-      <div className="w-[45%] min-w-[380px] border-r border-zinc-800 overflow-hidden flex flex-col">
-        <ProblemPanel problem={problem} />
-      </div>
-
-      {/* Right panel — Editor */}
-      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        <CodeEditor
-          problemSlug={problem.slug}
-          starterCode={problem.starterCode as Record<string, string>}
-        />
-      </div>
+    <div className="h-[calc(100vh-56px)] overflow-hidden">
+      <ResizableProblemLayout
+        left={<ProblemPanel problem={problem} />}
+        right={
+          <CodeEditor
+            problemSlug={problem.slug}
+            starterCode={problem.starterCode as Record<string, string>}
+          />
+        }
+      />
     </div>
   );
 }

@@ -132,6 +132,9 @@ export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
       setSubmitResult({ status: data.status, output: data.output });
       setOutput(data.output || "(no output)");
       setRunStatus(data.exitCode === 0 ? "success" : "error");
+      if (data.status === "Accepted") {
+        try { localStorage.setItem(`lldsolved:${problemSlug}`, "true"); } catch {}
+      }
     } catch {
       setOutput("Network error — could not reach execution service");
       setRunStatus("error");
