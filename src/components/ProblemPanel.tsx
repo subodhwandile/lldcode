@@ -1,21 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Problem } from "@/lib/problems";
 import { Badge } from "@/components/ui/badge";
-import { Lightbulb, CheckCircle2, Lock, BookOpen, List } from "lucide-react";
+import { Lightbulb, CheckCircle2, Lock, BookOpen, List, History } from "lucide-react";
 
 interface ProblemPanelProps {
   problem: Problem;
 }
 
-type Tab = "description" | "hints" | "testcases";
+type Tab = "description" | "hints" | "testcases" | "submissions";
+
+interface Submission {
+  id: string;
+  language: string;
+  status: string;
+  output: string | null;
+  createdAt: string;
+  code: string;
+}
 
 export function ProblemPanel({ problem }: ProblemPanelProps) {
   const [activeTab, setActiveTab] = useState<Tab>("description");
   const [revealedHints, setRevealedHints] = useState<number[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [expandedCode, setExpandedCode] = useState<string | null>(null);
+
+  const fetchSubmissions = async () => {
+    setLoadingSubmissions(true);
+    try {
+      const res = await fetch(`/api/submissions/${problem.slug}`);
+      const data = await res.json();
+      setSubmissions(data.submissions || []);
+    } catch {
+      setSubmissions([]);
+    } finally {
+      setLoadingSubmissions(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "submissions") fetchSubmissions();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
 
   const revealHint = (i: number) => {
     if (!revealedHints.includes(i)) {
@@ -27,6 +57,7 @@ export function ProblemPanel({ problem }: ProblemPanelProps) {
     { id: "description", label: "Problem", icon: <BookOpen className="w-3.5 h-3.5" /> },
     { id: "hints", label: `Hints (${problem.hints.length})`, icon: <Lightbulb className="w-3.5 h-3.5" /> },
     { id: "testcases", label: "Test Cases", icon: <List className="w-3.5 h-3.5" /> },
+    { id: "submissions", label: "Submissions", icon: <History className="w-3.5 h-3.5" /> },
   ];
 
   return (
@@ -157,6 +188,58 @@ export function ProblemPanel({ problem }: ProblemPanelProps) {
                 <p className="text-sm text-zinc-500">
                   {problem.testCases.filter((tc) => tc.isHidden).length} hidden test cases — revealed after submission
                 </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "submissions" && (
+          <div className="px-5 py-5">
+            {loadingSubmissions ? (
+              <p className="text-xs text-zinc-600">Loading submissions...</p>
+            ) : submissions.length === 0 ? (
+              <div className="text-center py-12">
+                <History className="w-8 h-8 text-zinc-700 mx-auto mb-3" />
+                <p className="text-sm text-zinc-500">No submissions yet</p>
+                <p className="text-xs text-zinc-700 mt-1">Submit your code to see history here</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {submissions.map((sub) => (
+                  <div key={sub.id} className="border border-zinc-800 rounded-lg overflow-hidden">
+                    <div
+                      className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                      onClick={() => setExpandedCode(expandedCode === sub.id ? null : sub.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                          sub.status === "Accepted"
+                            ? "bg-emerald-900/50 text-emerald-400 border border-emerald-800"
+                            : "bg-red-900/50 text-red-400 border border-red-800"
+                        }`}>
+                          {sub.status}
+                        </span>
+                        <span className="text-xs text-zinc-500 capitalize">{sub.language}</span>
+                      </div>
+                      <span className="text-xs text-zinc-600">
+                        {new Date(sub.createdAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {expandedCode === sub.id && (
+                      <div className="border-t border-zinc-800">
+                        <pre className="text-xs font-mono text-zinc-300 bg-zinc-900/50 p-4 overflow-x-auto max-h-64 leading-relaxed">
+                          {sub.code}
+                        </pre>
+                        {sub.output && (
+                          <div className="border-t border-zinc-800 px-4 py-3">
+                            <span className="text-xs text-zinc-600 uppercase tracking-wider block mb-1.5">Output</span>
+                            <pre className="text-xs font-mono text-zinc-400 whitespace-pre-wrap">{sub.output}</pre>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>

@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
-import { Play, ChevronDown, RotateCcw, Save } from "lucide-react";
+import { Play, ChevronDown, RotateCcw, Save, Send } from "lucide-react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -35,9 +35,7 @@ function loadSaved(slug: string, lang: string, fallback: string): string {
 function persistCode(slug: string, lang: string, code: string) {
   try {
     localStorage.setItem(storageKey(slug, lang), code);
-  } catch {
-    // localStorage full or unavailable
-  }
+  } catch {}
 }
 
 export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
@@ -45,36 +43,29 @@ export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
   const [code, setCode] = useState(() => loadSaved(problemSlug, "java", starterCode["java"] || ""));
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
-  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [submitting, setSubmitting] = useState(false);
+  const [runStatus, setRunStatus] = useState<"idle" | "success" | "error">("idle");
+  const [submitResult, setSubmitResult] = useState<{ status: string; output: string } | null>(null);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isFirstMount = useRef(true);
 
-  // Autosave: debounce 1.5s after user stops typing
+  // Autosave with 1.5s debounce
   useEffect(() => {
-    // Skip saving on first mount (don't overwrite with starter code)
     if (isFirstMount.current) {
       isFirstMount.current = false;
       return;
     }
-
     setSaveStatus("saving");
-
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-
     autosaveTimer.current = setTimeout(() => {
       persistCode(problemSlug, language, code);
       setSaveStatus("saved");
-
-      // Reset to idle after 2s
       setTimeout(() => setSaveStatus("idle"), 2000);
     }, 1500);
-
-    return () => {
-      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    };
+    return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
   }, [code, language, problemSlug]);
 
   const handleLanguageChange = (lang: string) => {
@@ -82,9 +73,10 @@ export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
     setCode(loadSaved(problemSlug, lang, starterCode[lang] || ""));
     setShowLangMenu(false);
     setOutput("");
-    setStatus("idle");
+    setRunStatus("idle");
+    setSubmitResult(null);
     setSaveStatus("idle");
-    isFirstMount.current = true; // treat lang switch like a fresh mount
+    isFirstMount.current = true;
   };
 
   const handleReset = () => {
@@ -99,32 +91,54 @@ export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
     if (running) return;
     setRunning(true);
     setOutput("Running...");
-    setStatus("idle");
-
+    setRunStatus("idle");
+    setSubmitResult(null);
     try {
       const res = await fetch("/api/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, language, problemSlug }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setOutput(data.error || "Execution failed");
-        setStatus("error");
-        return;
-      }
-
+      if (!res.ok) { setOutput(data.error || "Execution failed"); setRunStatus("error"); return; }
       setOutput(data.output || "(no output)");
-      setStatus(data.status === "success" ? "success" : "error");
+      setRunStatus(data.status === "success" ? "success" : "error");
     } catch {
       setOutput("Network error — could not reach execution service");
-      setStatus("error");
+      setRunStatus("error");
     } finally {
       setRunning(false);
     }
   }, [code, language, problemSlug, running]);
+
+  const handleSubmit = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setOutput("Submitting...");
+    setRunStatus("idle");
+    setSubmitResult(null);
+    try {
+      const res = await fetch("/api/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, language, problemSlug }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setOutput(data.error || "Submission failed");
+        setRunStatus("error");
+        return;
+      }
+      setSubmitResult({ status: data.status, output: data.output });
+      setOutput(data.output || "(no output)");
+      setRunStatus(data.exitCode === 0 ? "success" : "error");
+    } catch {
+      setOutput("Network error — could not reach execution service");
+      setRunStatus("error");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [code, language, problemSlug, submitting]);
 
   const currentLang = LANGUAGES.find((l) => l.id === language)!;
 
@@ -160,7 +174,7 @@ export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
           </div>
 
           {/* Autosave indicator */}
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="text-xs">
             {saveStatus === "saving" && (
               <span className="text-zinc-600 flex items-center gap-1">
                 <Save className="w-3 h-3 animate-pulse" /> Saving...
@@ -175,7 +189,6 @@ export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Reset to starter code */}
           <button
             onClick={handleReset}
             title="Reset to starter code"
@@ -184,15 +197,14 @@ export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
 
-          <Button
-            variant="success"
-            size="sm"
-            onClick={handleRun}
-            disabled={running}
-            className="gap-1.5"
-          >
+          <Button variant="secondary" size="sm" onClick={handleRun} disabled={running || submitting} className="gap-1.5">
             <Play className="w-3.5 h-3.5" />
-            {running ? "Running..." : "Run Code"}
+            {running ? "Running..." : "Run"}
+          </Button>
+
+          <Button variant="primary" size="sm" onClick={handleSubmit} disabled={running || submitting} className="gap-1.5">
+            <Send className="w-3.5 h-3.5" />
+            {submitting ? "Submitting..." : "Submit"}
           </Button>
         </div>
       </div>
@@ -223,26 +235,31 @@ export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
       {/* Output panel */}
       <div className="border-t border-zinc-800 bg-zinc-950">
         <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
-          <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Output</span>
-          {status !== "idle" && (
-            <span
-              className={`text-xs font-medium px-2 py-0.5 rounded ${
-                status === "success"
-                  ? "bg-emerald-900/50 text-emerald-400"
-                  : "bg-red-900/50 text-red-400"
-              }`}
-            >
-              {status === "success" ? "Success" : "Error"}
+          <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+            {submitResult ? "Submission Result" : "Output"}
+          </span>
+          {submitResult && (
+            <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
+              submitResult.status === "Accepted"
+                ? "bg-emerald-900/50 text-emerald-400 border border-emerald-800"
+                : "bg-red-900/50 text-red-400 border border-red-800"
+            }`}>
+              {submitResult.status}
+            </span>
+          )}
+          {!submitResult && runStatus !== "idle" && (
+            <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+              runStatus === "success" ? "bg-emerald-900/50 text-emerald-400" : "bg-red-900/50 text-red-400"
+            }`}>
+              {runStatus === "success" ? "Success" : "Error"}
             </span>
           )}
         </div>
         <div className="px-4 py-3 min-h-[100px] max-h-[200px] overflow-y-auto">
           {output ? (
-            <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed">
-              {output}
-            </pre>
+            <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap leading-relaxed">{output}</pre>
           ) : (
-            <p className="text-xs text-zinc-600">Run your code to see output here.</p>
+            <p className="text-xs text-zinc-600">Run or submit your code to see output here.</p>
           )}
         </div>
       </div>
