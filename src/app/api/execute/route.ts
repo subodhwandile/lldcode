@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     if (session?.user?.id) {
       prisma.problem
         .findUnique({ where: { slug: problemSlug } })
-        .then((problem) => {
+        .then((problem: { id: string } | null) => {
           if (problem) {
             return prisma.submission.create({
               data: {
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
             });
           }
         })
-        .catch((e) => console.error("Submission save error:", e));
+        .catch((e: unknown) => console.error("Submission save error:", e));
     }
 
     return NextResponse.json({ output, status, exitCode });
