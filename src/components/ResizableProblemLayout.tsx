@@ -40,16 +40,21 @@ export function ResizableProblemLayout({ left, right }: ResizableProblemLayoutPr
   return (
     <div ref={containerRef} style={{ display: "flex", height: "100%", overflow: "hidden" }}>
       {/* Left panel */}
-      <div style={{ width: `${leftPct}%`, minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column", borderRight: "1px solid rgb(39 39 42)" }}>
+      <div style={{ width: `${leftPct}%`, minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
         {left}
       </div>
 
-      {/* Drag handle */}
+      {/* Drag handle — wide hit area with visible center line */}
       <div
         onMouseDown={onMouseDown}
-        style={{ width: "5px", flexShrink: 0, cursor: "col-resize", background: "rgb(39 39 42)", zIndex: 10 }}
-        className="hover:bg-indigo-500 active:bg-indigo-500 transition-colors"
-      />
+        style={{ width: "12px", flexShrink: 0, cursor: "col-resize", position: "relative", zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center" }}
+        className="group bg-transparent hover:bg-indigo-500/20"
+      >
+        <div
+          style={{ width: "2px", height: "100%", background: "rgb(63 63 70)", pointerEvents: "none" }}
+          className="group-hover:bg-indigo-500 transition-colors"
+        />
+      </div>
 
       {/* Right panel */}
       <div style={{ flex: 1, minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
