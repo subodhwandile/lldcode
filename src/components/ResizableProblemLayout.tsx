@@ -1,6 +1,6 @@
 "use client";
 
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { useState, useCallback, useRef } from "react";
 
 interface ResizableProblemLayoutProps {
   left: React.ReactNode;
@@ -8,28 +8,53 @@ interface ResizableProblemLayoutProps {
 }
 
 export function ResizableProblemLayout({ left, right }: ResizableProblemLayoutProps) {
+  const [leftPct, setLeftPct] = useState(45);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    dragging.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const onMove = (ev: MouseEvent) => {
+      if (!dragging.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+      setLeftPct(Math.min(70, Math.max(25, pct)));
+    };
+
+    const onUp = () => {
+      dragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, []);
+
   return (
-    <PanelGroup
-      direction="horizontal"
-      id="problem-layout"
-      style={{ height: "100%", display: "flex" }}
-    >
-      <Panel id="left-panel" defaultSize={45} minSize={25} maxSize={70}>
-        <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", borderRight: "1px solid rgb(39 39 42)" }}>
-          {left}
-        </div>
-      </Panel>
-      <PanelResizeHandle
-        id="resize-handle"
-        hitAreaMargins={{ coarse: 20, fine: 8 }}
-        style={{ width: "4px", flexShrink: 0, cursor: "col-resize", background: "rgb(63 63 70)", position: "relative" }}
-        className="hover:bg-indigo-500 data-[resize-handle-active]:bg-indigo-500 transition-colors"
+    <div ref={containerRef} style={{ display: "flex", height: "100%", overflow: "hidden" }}>
+      {/* Left panel */}
+      <div style={{ width: `${leftPct}%`, minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column", borderRight: "1px solid rgb(39 39 42)" }}>
+        {left}
+      </div>
+
+      {/* Drag handle */}
+      <div
+        onMouseDown={onMouseDown}
+        style={{ width: "5px", flexShrink: 0, cursor: "col-resize", background: "rgb(39 39 42)", zIndex: 10 }}
+        className="hover:bg-indigo-500 active:bg-indigo-500 transition-colors"
       />
-      <Panel id="right-panel" defaultSize={55} minSize={30}>
-        <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-          {right}
-        </div>
-      </Panel>
-    </PanelGroup>
+
+      {/* Right panel */}
+      <div style={{ flex: 1, minWidth: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        {right}
+      </div>
+    </div>
   );
 }
