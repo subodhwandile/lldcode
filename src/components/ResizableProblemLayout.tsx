@@ -9,17 +9,24 @@ interface ResizableProblemLayoutProps {
 
 export function ResizableProblemLayout({ left, right }: ResizableProblemLayoutProps) {
   return (
-    <PanelGroup direction="horizontal" className="h-full">
-      <Panel defaultSize={45} minSize={30} maxSize={65}>
-        <div className="h-full overflow-hidden flex flex-col border-r border-zinc-800">
+    <PanelGroup
+      direction="horizontal"
+      id="problem-layout"
+      style={{ height: "100%", display: "flex" }}
+    >
+      <Panel id="left-panel" defaultSize={45} minSize={25} maxSize={70}>
+        <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column", borderRight: "1px solid rgb(39 39 42)" }}>
           {left}
         </div>
       </Panel>
-      <PanelResizeHandle className="w-1.5 bg-zinc-800 hover:bg-indigo-500/60 active:bg-indigo-500 transition-colors cursor-col-resize flex items-center justify-center group">
-        <div className="w-0.5 h-8 bg-zinc-600 group-hover:bg-indigo-400 rounded-full transition-colors" />
-      </PanelResizeHandle>
-      <Panel defaultSize={55} minSize={35}>
-        <div className="h-full overflow-hidden flex flex-col">
+      <PanelResizeHandle
+        id="resize-handle"
+        hitAreaMargins={{ coarse: 20, fine: 8 }}
+        style={{ width: "4px", flexShrink: 0, cursor: "col-resize", background: "rgb(63 63 70)", position: "relative" }}
+        className="hover:bg-indigo-500 data-[resize-handle-active]:bg-indigo-500 transition-colors"
+      />
+      <Panel id="right-panel" defaultSize={55} minSize={30}>
+        <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {right}
         </div>
       </Panel>
