@@ -7971,6 +7971,4665 @@ match.printScorecard();`,
       },
     ],
   },
+  {
+    id: "50",
+    slug: "print-in-order",
+    title: "Print in Order",
+    difficulty: "Easy",
+    category: "Concurrency",
+    tags: ["Semaphore", "Mutex", "Thread Coordination", "Happens-Before"],
+    order: 50,
+    description: `## Problem Statement
+
+Given a class \`Foo\` with three methods \`first()\`, \`second()\`, and \`third()\`. Three threads will call these methods concurrently in any scheduler-determined order. Your task is to ensure that \`second()\` is always executed after \`first()\`, and \`third()\` is always executed after \`second()\`, regardless of thread scheduling.
+
+\`\`\`java
+class Foo {
+    public void first(Runnable printFirst) throws InterruptedException {
+        // printFirst.run() outputs "first"
+    }
+    public void second(Runnable printSecond) throws InterruptedException {
+        // printSecond.run() outputs "second"
+    }
+    public void third(Runnable printThird) throws InterruptedException {
+        // printThird.run() outputs "third"
+    }
+}
+\`\`\`
+
+## Key Entities
+- **Foo**: Shared object accessed by three threads simultaneously.
+- **Semaphore / CountDownLatch**: Synchronization primitive to establish ordering.
+- **Runnable**: Callback passed into each method to produce output.
+
+## Requirements
+1. Method \`second()\` must not execute until \`first()\` has completed.
+2. Method \`third()\` must not execute until \`second()\` has completed.
+3. Solution must be deadlock-free and not use busy-waiting.
+4. The class must be thread-safe regardless of how the OS schedules threads.
+
+> **Asked at:** Google, Amazon, Microsoft, Adobe, Apple, Bloomberg`,
+    constraints: `- Input is a permutation of [1, 2, 3] representing the order threads call the methods.
+- Exactly three threads are used — one per method.
+- No busy-waiting (spinning loops) is allowed.
+- Solution must not rely on sleep() for ordering.`,
+    hints: [
+      "Think about what synchronization primitive guarantees that one thread waits until another signals it.",
+      "A Semaphore initialized to 0 makes the acquiring thread block until another thread releases it.",
+      "You need two synchronization gates: one between first\u2192second and one between second\u2192third.",
+      "CountDownLatch(1) is an elegant alternative: first() counts down the latch that second() awaits.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Print in Order
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        PrintInOrder solution = new PrintInOrder();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class PrintInOrder {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public PrintInOrder() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Print in Order
+
+class PrintInOrder {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    PrintInOrder() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    PrintInOrder solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Print in Order
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class PrintInOrder {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new PrintInOrder();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "print-in-order-tc1",
+        description: "Test case 1",
+        input: "nums = [1, 2, 3] (threads call first, second, third in this order)",
+        expectedOutput: "firstsecondthird",
+        isHidden: false,
+      },
+      {
+        id: "print-in-order-tc2",
+        description: "Test case 2",
+        input: "nums = [1, 3, 2] (threads call first, third, second \u2014 out of natural order)",
+        expectedOutput: "firstsecondthird",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "51",
+    slug: "print-foobar-alternately",
+    title: "Print FooBar Alternately",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Semaphore", "Mutex", "Thread Coordination", "Condition Variable"],
+    order: 51,
+    description: `## Problem Statement
+
+You are given a class \`FooBar\` with two methods: \`foo()\` and \`bar()\`. Two threads — Thread A and Thread B — will concurrently call \`foo()\` and \`bar()\` respectively. Your task is to synchronize them so that the output is always \`"foobar"\` repeated exactly \`n\` times.
+
+\`\`\`java
+class FooBar {
+    private int n;
+    public FooBar(int n) { this.n = n; }
+    public void foo(Runnable printFoo) throws InterruptedException {
+        // printFoo.run() outputs "foo"
+    }
+    public void bar(Runnable printBar) throws InterruptedException {
+        // printBar.run() outputs "bar"
+    }
+}
+\`\`\`
+
+## Key Entities
+- **FooBar**: Shared state object holding iteration counter \`n\`.
+- **Semaphore pair**: Two semaphores (one starting at 1, one at 0) enabling ping-pong signaling.
+- **Condition Variables**: Alternative to semaphores for signaling between foo and bar.
+
+## Requirements
+1. Output must always be \`"foobar"\` repeated exactly \`n\` times — never \`"barfoo"\` or interleaved.
+2. Thread A only calls \`foo()\` and Thread B only calls \`bar()\`.
+3. No busy-waiting allowed.
+4. Solution must handle \`n\` up to 1,000.
+
+> **Asked at:** Google, Amazon, Microsoft, Facebook, Uber`,
+    constraints: `- 1 ≤ n ≤ 1000
+- Exactly two threads: one calls foo(), the other calls bar().
+- Output must be exactly "foobar" * n with no extra characters.
+- No busy-waiting or Thread.sleep() for synchronization.`,
+    hints: [
+      "Use two semaphores: fooSem initialized to 1 (so foo runs first), barSem initialized to 0.",
+      "foo() acquires fooSem, prints 'foo', then releases barSem. bar() acquires barSem, prints 'bar', then releases fooSem.",
+      "Alternatively, use a ReentrantLock with two Condition objects and a boolean flag.",
+      "Think of it as a relay race \u2014 foo passes the baton to bar which passes it back.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Print FooBar Alternately
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        PrintFoobarAlternately solution = new PrintFoobarAlternately();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class PrintFoobarAlternately {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public PrintFoobarAlternately() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Print FooBar Alternately
+
+class PrintFoobarAlternately {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    PrintFoobarAlternately() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    PrintFoobarAlternately solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Print FooBar Alternately
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class PrintFoobarAlternately {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new PrintFoobarAlternately();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "print-foobar-alternately-tc1",
+        description: "Test case 1",
+        input: "n = 1",
+        expectedOutput: "foobar",
+        isHidden: false,
+      },
+      {
+        id: "print-foobar-alternately-tc2",
+        description: "Test case 2",
+        input: "n = 2",
+        expectedOutput: "foobarfoobar",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "52",
+    slug: "print-fizzbuzz-multithreaded",
+    title: "Print FizzBuzz Multithreaded",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Semaphore", "Mutex", "Thread Coordination", "Condition Variable"],
+    order: 52,
+    description: `## Problem Statement
+
+Design a multithreaded solution that outputs the FizzBuzz sequence from 1 to \`n\` using exactly four threads.
+
+- Thread A calls \`fizz()\` — prints "fizz" for numbers divisible by 3 (but not 5).
+- Thread B calls \`buzz()\` — prints "buzz" for numbers divisible by 5 (but not 3).
+- Thread C calls \`fizzbuzz()\` — prints "fizzbuzz" for numbers divisible by both 3 and 5.
+- Thread D calls \`number()\` — prints the number itself for all other integers.
+
+\`\`\`java
+class FizzBuzz {
+    private int n;
+    public FizzBuzz(int n) { this.n = n; }
+    public void fizz(Runnable printFizz) throws InterruptedException {}
+    public void buzz(Runnable printBuzz) throws InterruptedException {}
+    public void fizzbuzz(Runnable printFizzBuzz) throws InterruptedException {}
+    public void number(IntConsumer printNumber) throws InterruptedException {}
+}
+\`\`\`
+
+## Key Entities
+- **FizzBuzz**: Shared counter and synchronization logic.
+- **Four specialized threads**: Each dedicated to one output type.
+- **Semaphores / ReentrantLock+Condition**: Four semaphores (one per thread type) controlling which thread wakes.
+
+## Requirements
+1. Output must be perfectly ordered from 1 to n.
+2. All four threads must participate — no thread may handle multiple conditions.
+3. Each number must be processed exactly once.
+4. No busy-waiting.
+
+> **Asked at:** Google, Amazon, Microsoft, Apple, Goldman Sachs`,
+    constraints: `- 1 ≤ n ≤ 50
+- Exactly four threads — one per method.
+- Output sequence must match single-threaded FizzBuzz exactly.
+- Threads call their assigned methods in a loop until n is exhausted.`,
+    hints: [
+      "Use four semaphores: fizzSem, buzzSem, fizzBuzzSem, numberSem. Initialize numberSem to 1, others to 0.",
+      "After processing each number i, the 'number' thread evaluates divisibility and releases the correct semaphore.",
+      "A shared counter `current` tracks the next number to process; each thread increments it after acting.",
+      "Alternatively use a single ReentrantLock + Condition per thread; the woken thread checks its own condition and re-sleeps if not its turn.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Print FizzBuzz Multithreaded
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        PrintFizzbuzzMultithreade solution = new PrintFizzbuzzMultithreade();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class PrintFizzbuzzMultithreade {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public PrintFizzbuzzMultithreade() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Print FizzBuzz Multithreaded
+
+class PrintFizzbuzzMultithreade {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    PrintFizzbuzzMultithreade() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    PrintFizzbuzzMultithreade solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Print FizzBuzz Multithreaded
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class PrintFizzbuzzMultithreade {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new PrintFizzbuzzMultithreade();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "print-fizzbuzz-multithreaded-tc1",
+        description: "Test case 1",
+        input: "n = 15",
+        expectedOutput: "1, 2, fizz, 4, buzz, fizz, 7, 8, fizz, buzz, 11, fizz, 13, 14, fizzbuzz",
+        isHidden: false,
+      },
+      {
+        id: "print-fizzbuzz-multithreaded-tc2",
+        description: "Test case 2",
+        input: "n = 5",
+        expectedOutput: "1, 2, fizz, 4, buzz",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "53",
+    slug: "building-h2o",
+    title: "Building H2O",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Semaphore", "Barrier", "Thread Coordination", "CyclicBarrier"],
+    order: 53,
+    description: `## Problem Statement
+
+There are two kinds of threads: hydrogen (H) and oxygen (O). Your goal is to group these threads to form water molecules. There is a barrier where each thread has to wait until a complete molecule — exactly 2 hydrogen and 1 oxygen — can be formed. Threads pass the barrier by invoking \`releaseHydrogen()\` or \`releaseOxygen()\`.
+
+You must guarantee that all threads from one molecule bond **before** any threads from the next molecule do. (Threads do not need to be paired explicitly; just guarantee the composition 2H + 1O passes the barrier together.)
+
+\`\`\`java
+class H2O {
+    public H2O() {}
+    public void hydrogen(Runnable releaseHydrogen) throws InterruptedException {
+        // releaseHydrogen.run() signals that this thread can be released
+    }
+    public void oxygen(Runnable releaseOxygen) throws InterruptedException {
+        // releaseOxygen.run() signals that this thread can be released
+    }
+}
+\`\`\`
+
+## Key Entities
+- **H2O**: Central coordinator maintaining counts of waiting H and O threads.
+- **Semaphore for H**: Allows exactly 2 hydrogen threads per molecule.
+- **Semaphore for O**: Allows exactly 1 oxygen thread per molecule.
+- **CyclicBarrier(3)**: Ensures all three threads of one molecule clear together before the next molecule starts.
+
+## Requirements
+1. Every water molecule must consist of exactly 2 H and 1 O.
+2. No thread from the next molecule passes the barrier until the current molecule is complete.
+3. The input string is guaranteed to form complete molecules (e.g., \`"OOHHHH"\` = 2 molecules).
+4. Solution must be deadlock-free.
+
+> **Asked at:** LinkedIn, Google, Amazon, Microsoft, Uber`,
+    constraints: `- Input string length is divisible by 3.
+- Number of 'H' characters is twice the number of 'O' characters.
+- Total input length ≤ 300 characters.
+- Each thread calls its method exactly once.`,
+    hints: [
+      "Use a Semaphore(2) for hydrogen (only 2 H threads may proceed per molecule) and Semaphore(1) for oxygen.",
+      "Add a CyclicBarrier(3): all three threads (2H + 1O) rendezvous at the barrier before any are released.",
+      "The barrier's runnable action can reset per-molecule state for the next round.",
+      "Draw a state diagram: 0H0O \u2192 1H0O \u2192 2H0O \u2192 (wait for O) \u2192 release molecule.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Building H2O
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        BuildingH2o solution = new BuildingH2o();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class BuildingH2o {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public BuildingH2o() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Building H2O
+
+class BuildingH2o {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    BuildingH2o() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    BuildingH2o solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Building H2O
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class BuildingH2o {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new BuildingH2o();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "building-h2o-tc1",
+        description: "Test case 1",
+        input: "water = \"HOH\"",
+        expectedOutput: "Any valid permutation of HOH (e.g., \"HOH\", \"HHO\", \"OHH\")",
+        isHidden: false,
+      },
+      {
+        id: "building-h2o-tc2",
+        description: "Test case 2",
+        input: "water = \"OOHHHH\"",
+        expectedOutput: "Any valid permutation forming two complete molecules of H2O",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "54",
+    slug: "print-zero-even-odd",
+    title: "Print Zero Even Odd",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Semaphore", "Thread Coordination", "Mutex"],
+    order: 54,
+    description: `## Problem Statement
+
+Design a thread-safe class \`ZeroEvenOdd\` where three threads cooperate to output the sequence \`"010203040506..."\` up to \`n\`.
+
+- Thread A calls \`zero()\` — always prints \`0\` before each number.
+- Thread B calls \`even()\` — prints even numbers.
+- Thread C calls \`odd()\` — prints odd numbers.
+
+The output for \`n = 5\` is \`"0102030405"\`.
+
+\`\`\`java
+class ZeroEvenOdd {
+    private int n;
+    public ZeroEvenOdd(int n) { this.n = n; }
+    public void zero(IntConsumer printNumber) throws InterruptedException {}
+    public void even(IntConsumer printNumber) throws InterruptedException {}
+    public void odd(IntConsumer printNumber) throws InterruptedException {}
+}
+\`\`\`
+
+## Key Entities
+- **ZeroEvenOdd**: Maintains shared counter and synchronization state.
+- **Three semaphores**: \`zeroSem\` (starts at 1), \`oddSem\` (starts at 0), \`evenSem\` (starts at 0).
+- **Coordination logic**: zero() decides whether to signal odd or even based on the current number.
+
+## Requirements
+1. Output must strictly follow pattern: 0, number, 0, number, ... alternating.
+2. zero() must precede every number.
+3. Even numbers go to Thread B, odd numbers to Thread C.
+4. No busy-waiting.
+
+> **Asked at:** Goldman Sachs, Amazon, Microsoft, Google`,
+    constraints: `- 1 ≤ n ≤ 1000
+- Exactly three threads, each calling only their assigned method.
+- Output length is exactly 2n.
+- No Thread.sleep() based synchronization.`,
+    hints: [
+      "Use three semaphores: zeroSem(1), oddSem(0), evenSem(0).",
+      "zero() acquires zeroSem, prints 0, then releases oddSem or evenSem depending on whether the next number is odd or even.",
+      "odd() acquires oddSem, prints the odd number, then releases zeroSem. Similarly for even().",
+      "A shared AtomicInteger counter tracks which number comes next.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Print Zero Even Odd
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        PrintZeroEvenOdd solution = new PrintZeroEvenOdd();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class PrintZeroEvenOdd {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public PrintZeroEvenOdd() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Print Zero Even Odd
+
+class PrintZeroEvenOdd {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    PrintZeroEvenOdd() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    PrintZeroEvenOdd solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Print Zero Even Odd
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class PrintZeroEvenOdd {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new PrintZeroEvenOdd();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "print-zero-even-odd-tc1",
+        description: "Test case 1",
+        input: "n = 2",
+        expectedOutput: "0102",
+        isHidden: false,
+      },
+      {
+        id: "print-zero-even-odd-tc2",
+        description: "Test case 2",
+        input: "n = 5",
+        expectedOutput: "0102030405",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "55",
+    slug: "design-bounded-blocking-queue",
+    title: "Design Bounded Blocking Queue",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Producer-Consumer", "Semaphore", "Blocking Queue", "Mutex", "Condition Variable"],
+    order: 55,
+    description: `## Problem Statement
+
+Implement a **thread-safe, bounded blocking queue** that supports concurrent producers and consumers. You may **not** use Java's built-in \`BlockingQueue\` or similar abstractions.
+
+\`\`\`java
+class BoundedBlockingQueue {
+    public BoundedBlockingQueue(int capacity) {}
+    public void enqueue(int element) throws InterruptedException {}
+    public int dequeue() throws InterruptedException {}
+    public int size() {}
+}
+\`\`\`
+
+- \`enqueue(element)\`: Adds an element to the tail; **blocks** if the queue is full until space is available.
+- \`dequeue()\`: Removes and returns the head element; **blocks** if the queue is empty until an element arrives.
+- \`size()\`: Returns the number of elements currently in the queue (called after all producers/consumers finish in tests).
+
+## Key Entities
+- **Internal buffer**: Array or LinkedList holding elements up to \`capacity\`.
+- **Producer semaphore** (\`notFull\`): Initialized to \`capacity\` — counts available slots.
+- **Consumer semaphore** (\`notEmpty\`): Initialized to 0 — counts available elements.
+- **Mutex**: Ensures mutual exclusion when accessing the internal buffer.
+
+## Requirements
+1. \`enqueue\` must block (not spin) when at capacity.
+2. \`dequeue\` must block (not spin) when empty.
+3. Multiple producers and consumers must operate without data corruption.
+4. FIFO ordering must be maintained.
+
+> **Asked at:** Amazon, Google, LinkedIn, Uber, Cloudera, Oracle`,
+    constraints: `- 1 ≤ capacity ≤ 1000
+- 0 ≤ element ≤ 2000
+- At most 1000 calls to enqueue and dequeue combined.
+- The queue must not use Java's ArrayBlockingQueue, LinkedBlockingQueue, or similar built-ins.`,
+    hints: [
+      "Use two semaphores: notFull(capacity) and notEmpty(0). enqueue acquires notFull and releases notEmpty; dequeue does the reverse.",
+      "A ReentrantLock with two Conditions (notFull, notEmpty) is an alternative: await() when the condition fails, signal() after modification.",
+      "The internal buffer can be a simple array with head/tail indices (circular buffer) or a LinkedList.",
+      "Remember that size() should reflect the true current count \u2014 use an AtomicInteger or read under the lock.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Design Bounded Blocking Queue
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        DesignBoundedBlockingQueu solution = new DesignBoundedBlockingQueu();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class DesignBoundedBlockingQueu {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public DesignBoundedBlockingQueu() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Design Bounded Blocking Queue
+
+class DesignBoundedBlockingQueu {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    DesignBoundedBlockingQueu() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    DesignBoundedBlockingQueu solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Design Bounded Blocking Queue
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class DesignBoundedBlockingQueu {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new DesignBoundedBlockingQueu();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "design-bounded-blocking-queue-tc1",
+        description: "Test case 1",
+        input: "capacity=2, ops=[enqueue(1), dequeue(), dequeue() blocks, enqueue(0) unblocks, enqueue(2), enqueue(3), enqueue(4) blocks, dequeue() returns 2]",
+        expectedOutput: "dequeue\u21921, dequeue\u21920, dequeue\u21922; size=1 after all ops",
+        isHidden: false,
+      },
+      {
+        id: "design-bounded-blocking-queue-tc2",
+        description: "Test case 2",
+        input: "capacity=3, 3 producers enqueue(1,2,3,4) concurrently with 4 consumers",
+        expectedOutput: "All enqueued values are dequeued exactly once; any ordering permutation is valid",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "56",
+    slug: "multithreaded-web-crawler",
+    title: "Multithreaded Web Crawler",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Thread Pool", "ConcurrentHashMap", "BFS", "Producer-Consumer", "ExecutorService"],
+    order: 56,
+    description: `## Problem Statement
+
+Implement a **multithreaded web crawler** that crawls all URLs reachable from a \`startUrl\`, visiting only URLs that share the same hostname. The \`HtmlParser.getUrls(url)\` interface returns all hyperlinks on a given page (simulating an HTTP GET + parse). A single-threaded implementation will exceed time limits.
+
+\`\`\`java
+interface HtmlParser {
+    List<String> getUrls(String url);
+}
+
+class Solution {
+    public List<String> crawl(String startUrl, HtmlParser htmlParser) {}
+}
+\`\`\`
+
+## Key Entities
+- **ExecutorService / ThreadPoolExecutor**: Manages worker threads fetching pages in parallel.
+- **ConcurrentHashMap / ConcurrentHashSet**: Tracks visited URLs to avoid duplicates.
+- **BlockingQueue**: Work queue feeding URLs to worker threads (BFS frontier).
+- **CountDownLatch / Phaser**: Detects when all in-flight crawl tasks have completed.
+
+## Requirements
+1. Only crawl URLs whose hostname matches the \`startUrl\` hostname.
+2. Never visit the same URL twice.
+3. Crawl must terminate — no infinite loops.
+4. Use multiple threads to parallelize \`getUrls()\` calls.
+5. Return all discovered same-hostname URLs.
+
+> **Asked at:** Facebook, Dropbox, Google, Amazon, Microsoft, Uber`,
+    constraints: `- 1 ≤ urls.length ≤ 1000
+- 1 ≤ urls[i].length ≤ 300
+- startUrl is guaranteed to be in the urls list.
+- No duplicate URLs exist in the input url list.
+- Hostname labels: 1–63 characters, ASCII letters (a-z), digits (0-9), hyphens (not at start or end).`,
+    hints: [
+      "Extract the hostname from startUrl by splitting on '/' and taking the third segment (index 2).",
+      "Use an ExecutorService with a fixed thread pool and a ConcurrentHashSet to track visited URLs atomically.",
+      "Use a recursive CompletableFuture approach: for each new URL, submit a new task; collect all futures and join.",
+      "A CountDownLatch or Phaser works well to know when all pending tasks are done before returning results.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Multithreaded Web Crawler
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        MultithreadedWebCrawler solution = new MultithreadedWebCrawler();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class MultithreadedWebCrawler {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public MultithreadedWebCrawler() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Multithreaded Web Crawler
+
+class MultithreadedWebCrawler {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    MultithreadedWebCrawler() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    MultithreadedWebCrawler solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Multithreaded Web Crawler
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class MultithreadedWebCrawler {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new MultithreadedWebCrawler();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "multithreaded-web-crawler-tc1",
+        description: "Test case 1",
+        input: "startUrl = \"http://news.yahoo.com/news/topics/\", urls contain yahoo.com and google.com links",
+        expectedOutput: "All reachable yahoo.com URLs (4 URLs in example)",
+        isHidden: false,
+      },
+      {
+        id: "multithreaded-web-crawler-tc2",
+        description: "Test case 2",
+        input: "startUrl = \"http://news.google.com\", all outgoing links point to other domains",
+        expectedOutput: "[\"http://news.google.com\"]",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "57",
+    slug: "traffic-light-controlled-intersection",
+    title: "Traffic Light Controlled Intersection",
+    difficulty: "Easy",
+    category: "Concurrency",
+    tags: ["Mutex", "Thread Coordination", "State Machine"],
+    order: 57,
+    description: `## Problem Statement
+
+Design a traffic light controller for a single intersection with two roads:
+- **Road A** handles directions 1 and 2 (North ↔ South).
+- **Road B** handles directions 3 and 4 (West ↔ East).
+
+Initially Road A's light is green and Road B's light is red. When a car arrives, call \`carArrived(carId, roadId, direction, turnGreen, crossCar)\` where:
+- \`turnGreen()\` changes the current road's light to green (should only be called if it isn't already green).
+- \`crossCar()\` allows the car to cross the intersection.
+
+\`\`\`java
+class TrafficLight {
+    public TrafficLight() {}
+    public void carArrived(int carId, int roadId, int direction,
+                           Runnable turnGreen, Runnable crossCar) {}
+}
+\`\`\`
+
+## Key Entities
+- **TrafficLight**: Maintains current green-road state with thread-safe transitions.
+- **ReentrantLock / synchronized**: Ensures only one car crosses at a time and light changes are atomic.
+- **currentGreenRoad**: Shared variable (volatile or guarded by lock).
+
+## Requirements
+1. No two cars from different roads cross at the same time.
+2. \`turnGreen()\` must only be called when the road is currently red.
+3. Once a road turns green, subsequent cars on that road can cross without calling \`turnGreen()\` again.
+4. Solution must be deadlock-free under concurrent arrivals.
+
+> **Asked at:** Amazon, Microsoft, Google, Uber`,
+    constraints: `- 1 ≤ cars.length ≤ 20
+- All carId values are unique.
+- 1 ≤ directions[i] ≤ 4 (1,2 → Road A; 3,4 → Road B).
+- arrivalTimes array is non-decreasing.
+- Each call to carArrived is made from a separate thread.`,
+    hints: [
+      "Store an integer `currentGreenRoad` (initially 1 for Road A). Protect it with a ReentrantLock.",
+      "Inside carArrived, acquire the lock, check if the incoming roadId differs from currentGreenRoad, call turnGreen() if so and update state, then call crossCar().",
+      "A simple synchronized block on `this` works since state transitions are short-lived.",
+      "Be careful: turnGreen() must not be called if that road is already green \u2014 your guard condition handles this.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Traffic Light Controlled Intersection
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        TrafficLightControlledInt solution = new TrafficLightControlledInt();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class TrafficLightControlledInt {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public TrafficLightControlledInt() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Traffic Light Controlled Intersection
+
+class TrafficLightControlledInt {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    TrafficLightControlledInt() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    TrafficLightControlledInt solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Traffic Light Controlled Intersection
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class TrafficLightControlledInt {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new TrafficLightControlledInt();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "traffic-light-controlled-intersection-tc1",
+        description: "Test case 1",
+        input: "cars=[1,3,5,2,4], directions=[2,1,2,4,3], arrivalTimes=[10,20,30,40,50]",
+        expectedOutput: "Cars 1,3,5 cross on Road A (green); light switches; Cars 2,4 cross on Road B",
+        isHidden: false,
+      },
+      {
+        id: "traffic-light-controlled-intersection-tc2",
+        description: "Test case 2",
+        input: "cars=[1,2,3,4,5], directions=[2,2,1,2,3], arrivalTimes=[10,20,30,40,40]",
+        expectedOutput: "Correct alternation with no two opposing-road cars crossing simultaneously",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "58",
+    slug: "producer-consumer-blocking-queue",
+    title: "Producer-Consumer with BlockingQueue",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Producer-Consumer", "BlockingQueue", "Semaphore", "Mutex", "Thread Pool"],
+    order: 58,
+    description: `## Problem Statement
+
+Design a **multi-producer, multi-consumer system** using a shared bounded buffer. Multiple producer threads generate integer items and push them onto the queue; multiple consumer threads pull items and process them. Implement the core \`SharedBuffer\` class from scratch **without** using Java's \`BlockingQueue\`.
+
+\`\`\`java
+class SharedBuffer {
+    private final int capacity;
+    public SharedBuffer(int capacity) { this.capacity = capacity; }
+    // Producer calls this
+    public void produce(int item) throws InterruptedException {}
+    // Consumer calls this
+    public int consume() throws InterruptedException {}
+    // Graceful shutdown
+    public void shutdown() {}
+    public boolean isShutdown() {}
+}
+\`\`\`
+
+## Key Entities
+- **SharedBuffer**: Central data structure with bounded capacity.
+- **Producer Thread**: Generates data items and calls \`produce()\`.
+- **Consumer Thread**: Fetches items via \`consume()\` and processes them.
+- **ReentrantLock + Conditions (notFull, notEmpty)**: Core synchronization.
+
+## Requirements
+1. Producers must block when the buffer is full.
+2. Consumers must block when the buffer is empty.
+3. Support \`shutdown()\` to gracefully drain the queue and unblock waiting threads.
+4. Support N producers and M consumers running concurrently.
+5. No item must be produced or consumed more than once.
+
+> **Asked at:** Amazon, Google, Microsoft, Uber, Flipkart, Paytm, Swiggy`,
+    constraints: `- 1 ≤ capacity ≤ 10000
+- Number of producer threads: 1–20
+- Number of consumer threads: 1–20
+- Items are non-negative integers.
+- After shutdown(), blocked consumers drain remaining items then return sentinel value (-1).`,
+    hints: [
+      "Use ReentrantLock with Condition notFull and notEmpty; produce() calls notFull.await() when full, notEmpty.signal() after adding.",
+      "Use a circular array or ArrayDeque as the internal buffer for O(1) enqueue/dequeue.",
+      "For graceful shutdown, set a volatile boolean flag and call notEmpty.signalAll() so blocked consumers can exit.",
+      "Track in-flight items with a count variable guarded by the lock to avoid spurious wakeups.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Producer-Consumer with BlockingQueue
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ProducerconsumerWithBlock solution = new ProducerconsumerWithBlock();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class ProducerconsumerWithBlock {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public ProducerconsumerWithBlock() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Producer-Consumer with BlockingQueue
+
+class ProducerconsumerWithBlock {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    ProducerconsumerWithBlock() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    ProducerconsumerWithBlock solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Producer-Consumer with BlockingQueue
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class ProducerconsumerWithBlock {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new ProducerconsumerWithBlock();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "producer-consumer-blocking-queue-tc1",
+        description: "Test case 1",
+        input: "capacity=5, 3 producers each producing items [1..10], 3 consumers",
+        expectedOutput: "All 30 items consumed exactly once; no item lost or duplicated",
+        isHidden: false,
+      },
+      {
+        id: "producer-consumer-blocking-queue-tc2",
+        description: "Test case 2",
+        input: "capacity=1, 1 producer, 1 consumer \u2014 strict alternation forced",
+        expectedOutput: "Items consumed in FIFO order with strict produce-then-consume alternation",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "59",
+    slug: "design-thread-pool-executor",
+    title: "Design a Thread Pool Executor",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Thread Pool", "BlockingQueue", "ExecutorService", "Worker Threads", "Task Queue"],
+    order: 59,
+    description: `## Problem Statement
+
+Implement a simplified **ThreadPoolExecutor** from scratch. Your pool maintains a fixed number of worker threads that pull tasks from a shared work queue and execute them. Implement the following interface:
+
+\`\`\`java
+class MyThreadPool {
+    public MyThreadPool(int corePoolSize, int maxPoolSize, int queueCapacity) {}
+    public void submit(Runnable task) throws RejectedExecutionException {}
+    public void shutdown() {}
+    public void awaitTermination() throws InterruptedException {}
+    public boolean isShutdown() {}
+    public int getActiveCount() {}
+    public int getQueueSize() {}
+}
+\`\`\`
+
+## Key Entities
+- **Worker Thread**: Long-lived thread that loops, pulling tasks from the queue.
+- **Task Queue**: Bounded \`BlockingQueue<Runnable>\` storing submitted tasks.
+- **Core Pool**: Minimum number of always-alive threads.
+- **Max Pool**: Upper limit; extra threads spawned when queue is full.
+- **Rejection Policy**: Throw \`RejectedExecutionException\` when maxPool is reached and queue is full.
+
+## Requirements
+1. Maintain \`corePoolSize\` threads always running (even when idle).
+2. Spawn additional threads up to \`maxPoolSize\` when the queue fills.
+3. \`shutdown()\` stops accepting new tasks; \`awaitTermination()\` blocks until all queued tasks complete.
+4. Support graceful draining — workers finish in-progress tasks before stopping.
+5. Thread-safe \`submit()\`, \`shutdown()\`, and status methods.
+
+> **Asked at:** Google, Amazon, Microsoft, Uber, Netflix, LinkedIn, Flipkart`,
+    constraints: `- 1 ≤ corePoolSize ≤ maxPoolSize ≤ 100
+- 1 ≤ queueCapacity ≤ 10000
+- Tasks submitted after shutdown() must be rejected.
+- awaitTermination() must block the calling thread until all tasks complete.
+- Workers must not busy-wait — they block on the queue.`,
+    hints: [
+      "Worker threads run in a loop: `while (!shutdown || !taskQueue.isEmpty()) { task = taskQueue.poll(timeout); if (task != null) task.run(); }`",
+      "Use a BlockingQueue<Runnable> as the task queue. Workers call take() which blocks when empty.",
+      "Track active worker count with an AtomicInteger; increment on task start, decrement on completion.",
+      "For awaitTermination(), join() on each worker thread or use a CountDownLatch decremented when each worker exits.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Design a Thread Pool Executor
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        DesignAThreadPoolExecutor solution = new DesignAThreadPoolExecutor();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class DesignAThreadPoolExecutor {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public DesignAThreadPoolExecutor() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Design a Thread Pool Executor
+
+class DesignAThreadPoolExecutor {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    DesignAThreadPoolExecutor() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    DesignAThreadPoolExecutor solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Design a Thread Pool Executor
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class DesignAThreadPoolExecutor {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new DesignAThreadPoolExecutor();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "design-thread-pool-executor-tc1",
+        description: "Test case 1",
+        input: "pool(core=2, max=4, queue=10); submit 20 tasks each sleeping 100ms",
+        expectedOutput: "All 20 tasks execute; getActiveCount peaks at \u22644; pool terminates cleanly after shutdown()+awaitTermination()",
+        isHidden: false,
+      },
+      {
+        id: "design-thread-pool-executor-tc2",
+        description: "Test case 2",
+        input: "pool(core=1, max=1, queue=1); submit 3 tasks simultaneously",
+        expectedOutput: "Tasks 1 and 2 execute (one in-flight, one queued); Task 3 throws RejectedExecutionException",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "60",
+    slug: "token-bucket-rate-limiter",
+    title: "Token Bucket Rate Limiter",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Rate Limiting", "Token Bucket", "Semaphore", "Atomic Operations", "Concurrent Design"],
+    order: 60,
+    description: `## Problem Statement
+
+Design a **thread-safe Token Bucket Rate Limiter** that controls the rate of requests to a service. The bucket holds up to \`capacity\` tokens and is refilled at a rate of \`refillRate\` tokens per second. Each request consumes one token; requests are rejected (or blocked) when the bucket is empty.
+
+\`\`\`java
+class TokenBucketRateLimiter {
+    public TokenBucketRateLimiter(int capacity, int refillRatePerSecond) {}
+    // Returns true if the request is allowed, false if rate limit exceeded
+    public boolean allowRequest() {}
+    // Blocking variant: waits until a token is available
+    public void acquireToken() throws InterruptedException {}
+    public int availableTokens() {}
+}
+\`\`\`
+
+## Key Entities
+- **Token count**: Current number of available tokens (volatile long or AtomicLong).
+- **Last refill timestamp**: Used to lazily compute how many tokens to add.
+- **Refill logic**: Tokens added = elapsed_seconds × refillRate, capped at capacity.
+- **ReentrantLock / synchronized**: Guards token consumption and refill atomically.
+
+## Requirements
+1. Allow up to \`capacity\` burst requests instantly.
+2. Sustain \`refillRate\` requests per second long-term.
+3. \`allowRequest()\` must be non-blocking and thread-safe.
+4. \`acquireToken()\` blocks until a token is available (useful for throttling, not rejection).
+5. Handle high concurrency (thousands of threads calling simultaneously).
+
+> **Asked at:** Uber, Amazon, Google, Twitter, Netflix, Stripe, Paytm, Swiggy`,
+    constraints: `- 1 ≤ capacity ≤ 10^6
+- 1 ≤ refillRatePerSecond ≤ 10^6
+- Thread-safe for concurrent callers.
+- Refill must be lazy (computed on demand), not using a background thread by default.
+- Time precision: use System.nanoTime() for sub-millisecond accuracy.`,
+    hints: [
+      "Store `tokens` (AtomicLong) and `lastRefillNanos` (AtomicLong). On each call, compute elapsed time, calculate new tokens = elapsed_nanos/nanosPerToken, add to bucket (capped at capacity), then CAS-subtract 1.",
+      "The lazy refill pattern: `long now = System.nanoTime(); long elapsed = now - lastRefillTime; long newTokens = elapsed * refillRate / 1e9; tokens = min(capacity, tokens + newTokens);`",
+      "For the blocking variant, use a Semaphore initialized to capacity; a background ScheduledExecutorService releases tokens periodically.",
+      "Watch out for the ABA problem when using CAS loops \u2014 use a single lock for simplicity in interviews.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Token Bucket Rate Limiter
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        TokenBucketRateLimiter solution = new TokenBucketRateLimiter();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class TokenBucketRateLimiter {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public TokenBucketRateLimiter() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Token Bucket Rate Limiter
+
+class TokenBucketRateLimiter {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    TokenBucketRateLimiter() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    TokenBucketRateLimiter solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Token Bucket Rate Limiter
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class TokenBucketRateLimiter {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new TokenBucketRateLimiter();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "token-bucket-rate-limiter-tc1",
+        description: "Test case 1",
+        input: "capacity=10, refillRate=5/sec; 10 requests at t=0ms, then 1 request at t=200ms",
+        expectedOutput: "First 10 allowed (burst); request at 200ms allowed (1 token refilled); request at 201ms rejected",
+        isHidden: false,
+      },
+      {
+        id: "token-bucket-rate-limiter-tc2",
+        description: "Test case 2",
+        input: "capacity=5, refillRate=2/sec; 5 requests at t=0, 2 requests at t=1000ms",
+        expectedOutput: "First 5 allowed; at t=1000ms 2 tokens refilled, 2 more allowed",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "61",
+    slug: "dining-philosophers",
+    title: "Dining Philosophers",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Mutex", "Semaphore", "Deadlock", "Starvation", "Resource Ordering"],
+    order: 61,
+    description: `## Problem Statement
+
+Five philosophers sit around a circular table. Between each adjacent pair of philosophers lies one fork (chopstick). A philosopher alternates between **thinking** and **eating**. To eat, a philosopher must pick up **both** the left and right forks. After eating, both forks are returned.
+
+Design a solution that allows the philosophers to eat without **deadlock** and without **starvation**.
+
+\`\`\`java
+class DiningPhilosophers {
+    public DiningPhilosophers() {}
+    // Called concurrently by 5 threads (one per philosopher)
+    public void wantsToEat(int philosopher,
+                           Runnable pickLeftFork,
+                           Runnable pickRightFork,
+                           Runnable eat,
+                           Runnable putLeftFork,
+                           Runnable putRightFork) throws InterruptedException {}
+}
+\`\`\`
+
+## Key Entities
+- **5 Philosophers**: Threads indexed 0–4.
+- **5 Forks**: Shared resources; fork \`i\` is between philosopher \`i\` and \`(i+1)%5\`.
+- **Mutex per fork**: ReentrantLock or Semaphore(1) per fork.
+- **Deadlock prevention strategy**: Resource ordering, arbitrator, or capacity limiting.
+
+## Requirements
+1. No deadlock — philosophers must not all hold one fork and wait for the other indefinitely.
+2. No starvation — every philosopher eventually gets to eat.
+3. Maximum concurrency — allow multiple philosophers to eat simultaneously where possible.
+4. Solution should work for N philosophers (generalized).
+
+> **Asked at:** Google, Amazon, Microsoft, Facebook, Apple, Uber, Oracle`,
+    constraints: `- n = 5 philosophers, 5 forks in the standard problem.
+- Each philosopher thread calls wantsToEat() in a continuous loop.
+- Runnable callbacks must be called in order: pickLeft, pickRight, eat, putLeft, putRight.
+- Solution must be deadlock-free and starvation-free.`,
+    hints: [
+      "Resource ordering fix: have philosopher 4 (highest index) pick the RIGHT fork first instead of the left. This breaks the circular wait.",
+      "Arbitrator fix: use a global Semaphore(4) limiting only 4 philosophers to attempt eating simultaneously \u2014 at least one will always succeed.",
+      "Chandy-Misra protocol: forks carry a 'dirty/clean' state and are passed via request messages between neighbors.",
+      "If using lock ordering, always acquire the lower-indexed fork first to prevent circular wait among all philosophers.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Dining Philosophers
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        DiningPhilosophers solution = new DiningPhilosophers();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class DiningPhilosophers {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public DiningPhilosophers() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Dining Philosophers
+
+class DiningPhilosophers {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    DiningPhilosophers() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    DiningPhilosophers solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Dining Philosophers
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class DiningPhilosophers {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new DiningPhilosophers();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "dining-philosophers-tc1",
+        description: "Test case 1",
+        input: "5 philosopher threads, each wants to eat 100 times",
+        expectedOutput: "All 5 philosophers eat their 100 meals; no deadlock; program terminates",
+        isHidden: false,
+      },
+      {
+        id: "dining-philosophers-tc2",
+        description: "Test case 2",
+        input: "5 philosopher threads with random think/eat durations",
+        expectedOutput: "No philosopher starves; each eats at least once in any 10-second window",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "62",
+    slug: "readers-writers-problem",
+    title: "Readers-Writers Problem",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["ReadWriteLock", "Semaphore", "Mutex", "Starvation", "Fairness"],
+    order: 62,
+    description: `## Problem Statement
+
+Design a **Readers-Writers lock** that allows a shared database/resource to be accessed by:
+- **Multiple readers simultaneously** (no modification).
+- **Only one writer at a time** (exclusive access — no concurrent readers or writers).
+
+Implement the three classic variants:
+1. **Readers-Preference**: No reader waits if the resource is open for reading (risk: writer starvation).
+2. **Writers-Preference**: No writer waits longer than necessary once queued (risk: reader starvation).
+3. **Fair (No Starvation)**: Neither readers nor writers starve; FIFO order respected.
+
+\`\`\`java
+class ReadWriteLock {
+    public ReadWriteLock() {}
+    public void lockRead() throws InterruptedException {}
+    public void unlockRead() {}
+    public void lockWrite() throws InterruptedException {}
+    public void unlockWrite() {}
+}
+\`\`\`
+
+## Key Entities
+- **readerCount**: Tracks active readers (guarded by a mutex).
+- **resourceMutex**: Exclusive lock on the resource itself.
+- **readerMutex**: Protects the \`readerCount\` variable.
+- **writerSemaphore / Condition**: Signals waiting writers when readers drain.
+
+## Requirements
+1. Multiple readers can hold the read lock concurrently.
+2. A writer waits for all current readers to finish before acquiring the write lock.
+3. No reader starts reading once a writer is waiting (writers-preference variant).
+4. Implement upgrade/downgrade (read → write lock) as a bonus.
+
+> **Asked at:** Google, Amazon, Microsoft, Uber, LinkedIn, Oracle, Samsung`,
+    constraints: `- Up to 100 reader threads and 10 writer threads concurrently.
+- Read operations are assumed to be non-modifying.
+- Write operations have exclusive access — no readers or other writers.
+- Solution must not use Java's built-in ReentrantReadWriteLock.`,
+    hints: [
+      "Readers-preference: use an integer `readerCount`; first reader acquires resourceMutex, last reader releases it. Writers simply acquire resourceMutex.",
+      "Writers-preference: add a `writeCount` and a `readTry` mutex; readers must acquire readTry (which writers also hold) before incrementing readerCount.",
+      "Fair solution: use a FIFO queue semaphore `serviceQueue`; all threads (readers and writers) enqueue before accessing the resource.",
+      "Java's StampedLock demonstrates the optimistic read pattern worth mentioning in interviews.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Readers-Writers Problem
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ReaderswritersProblem solution = new ReaderswritersProblem();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class ReaderswritersProblem {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public ReaderswritersProblem() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Readers-Writers Problem
+
+class ReaderswritersProblem {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    ReaderswritersProblem() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    ReaderswritersProblem solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Readers-Writers Problem
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class ReaderswritersProblem {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new ReaderswritersProblem();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "readers-writers-problem-tc1",
+        description: "Test case 1",
+        input: "10 readers and 2 writers; writers write 'X', readers verify consistent state",
+        expectedOutput: "No reader ever sees a partial write; writers always see exclusive access",
+        isHidden: false,
+      },
+      {
+        id: "readers-writers-problem-tc2",
+        description: "Test case 2",
+        input: "Readers-preference: 100 continuous readers, 1 writer",
+        expectedOutput: "Writer eventually acquires lock demonstrating starvation risk; or is blocked indefinitely (starvation demo)",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "63",
+    slug: "thread-safe-lru-cache",
+    title: "Thread-Safe LRU Cache",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["LRU Cache", "ReadWriteLock", "ConcurrentHashMap", "Doubly Linked List", "Thread Safety"],
+    order: 63,
+    description: `## Problem Statement
+
+Design a **thread-safe LRU (Least Recently Used) Cache** that supports O(1) amortized \`get\` and \`put\` operations under concurrent access from multiple threads.
+
+\`\`\`java
+class ThreadSafeLRUCache<K, V> {
+    public ThreadSafeLRUCache(int capacity) {}
+    public V get(K key) {}    // Returns null if absent; marks as recently used
+    public void put(K key, V value) {}  // Inserts; evicts LRU entry if at capacity
+    public int size() {}
+    public void evict(K key) {}  // Manual eviction
+}
+\`\`\`
+
+## Key Entities
+- **HashMap**: O(1) key → node lookup.
+- **Doubly Linked List**: Maintains recency order (head = MRU, tail = LRU).
+- **ReentrantReadWriteLock**: Allows concurrent reads, exclusive writes.
+- **Node**: Holds key, value, prev, next pointers.
+
+## Requirements
+1. \`get()\` and \`put()\` must be O(1) amortized.
+2. Thread-safe — concurrent \`get()\` calls from multiple readers are allowed simultaneously.
+3. \`put()\` acquires a write lock ensuring exclusive access.
+4. When capacity is exceeded, the least recently used entry is evicted.
+5. Optional: Add TTL (time-to-live) per entry.
+
+> **Asked at:** Amazon, Google, Microsoft, Facebook, Uber, LinkedIn, Apple, DoorDash`,
+    constraints: `- 1 ≤ capacity ≤ 3000
+- Keys and values are non-null objects.
+- Concurrent readers must not block each other.
+- A writer (put/evict) must block all readers.
+- get() must update recency order (move to head) — this requires a write lock or careful design.`,
+    hints: [
+      "The classic structure: HashMap<K, Node> for O(1) lookup, doubly linked list for O(1) eviction and promotion.",
+      "Since get() updates node position (recency), it too requires a write lock \u2014 pure read locks are tricky here.",
+      "For higher concurrency: use lock striping (split cache into K segments, each with its own lock).",
+      "Alternative: use ConcurrentHashMap + ConcurrentLinkedDeque, but true O(1) eviction requires the custom DLL approach.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Thread-Safe LRU Cache
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ThreadsafeLruCache solution = new ThreadsafeLruCache();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class ThreadsafeLruCache {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public ThreadsafeLruCache() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Thread-Safe LRU Cache
+
+class ThreadsafeLruCache {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    ThreadsafeLruCache() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    ThreadsafeLruCache solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Thread-Safe LRU Cache
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class ThreadsafeLruCache {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new ThreadsafeLruCache();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "thread-safe-lru-cache-tc1",
+        description: "Test case 1",
+        input: "capacity=2; put(1,'a'), put(2,'b'), get(1), put(3,'c') [evicts 2], get(2)",
+        expectedOutput: "get(1)='a', get(2)=null (evicted), get(3)='c'",
+        isHidden: false,
+      },
+      {
+        id: "thread-safe-lru-cache-tc2",
+        description: "Test case 2",
+        input: "50 threads concurrently putting and getting random keys into capacity=100 cache",
+        expectedOutput: "No data corruption, no deadlock, capacity never exceeded",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "64",
+    slug: "barrier-synchronization",
+    title: "Barrier Synchronization",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["CyclicBarrier", "CountDownLatch", "Barrier", "Semaphore", "Thread Coordination"],
+    order: 64,
+    description: `## Problem Statement
+
+Implement a **reusable cyclic barrier** from scratch. A barrier allows N threads to synchronize at a meeting point. No thread proceeds past the barrier until all N threads have arrived. Once all N threads arrive, the barrier is released and optionally a barrier action is executed. The barrier is **cyclic** — it resets automatically for the next round.
+
+\`\`\`java
+class MyCyclicBarrier {
+    public MyCyclicBarrier(int parties) {}
+    public MyCyclicBarrier(int parties, Runnable barrierAction) {}
+    // Blocks until all parties have invoked await()
+    // Returns the arrival index (0 = last to arrive)
+    public int await() throws InterruptedException, BrokenBarrierException {}
+    public void reset() {}   // Force-reset (breaks waiting threads)
+    public int getNumberWaiting() {}
+    public boolean isBroken() {}
+}
+\`\`\`
+
+## Key Entities
+- **parties**: Total number of threads that must arrive before releasing.
+- **count**: Atomic counter of threads that have reached the barrier.
+- **ReentrantLock + Condition**: Threads wait on the condition; last thread signals all.
+- **generation**: Each round has a generation object to detect broken barriers.
+
+## Requirements
+1. All N threads must arrive before any is released.
+2. The barrier resets automatically for the next round (cyclic).
+3. If a thread is interrupted while waiting, the barrier is broken — all waiting threads throw \`BrokenBarrierException\`.
+4. The optional \`barrierAction\` runs exactly once per barrier trip (executed by the last arriving thread).
+
+> **Asked at:** Google, Amazon, Microsoft, Oracle, Uber, Samsung`,
+    constraints: `- 1 ≤ parties ≤ 1000
+- Barrier must be reusable across multiple rounds without manual reset.
+- Thread interruption must propagate BrokenBarrierException to all waiting threads.
+- barrierAction (if provided) must complete before other threads are released.`,
+    hints: [
+      "Use a ReentrantLock with a single Condition. Track `count` (arrives so far). When count == parties, run barrierAction, reset count, and call condition.signalAll().",
+      "For the cyclic property, use a 'generation' integer. When the barrier trips, increment generation. Waiting threads compare their saved generation to detect a reset.",
+      "For broken barriers, set a `broken` flag and signalAll() \u2014 waiting threads check this flag and throw BrokenBarrierException.",
+      "The return value (arrival index) is `parties - count` at the time of arrival \u2014 last to arrive returns 0.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Barrier Synchronization
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        BarrierSynchronization solution = new BarrierSynchronization();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class BarrierSynchronization {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public BarrierSynchronization() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Barrier Synchronization
+
+class BarrierSynchronization {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    BarrierSynchronization() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    BarrierSynchronization solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Barrier Synchronization
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class BarrierSynchronization {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new BarrierSynchronization();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "barrier-synchronization-tc1",
+        description: "Test case 1",
+        input: "3-party barrier; 3 threads each doing work then calling await(); 3 rounds",
+        expectedOutput: "All threads synchronize at each round; barrier action prints 'Round X complete' exactly once per round",
+        isHidden: false,
+      },
+      {
+        id: "barrier-synchronization-tc2",
+        description: "Test case 2",
+        input: "3-party barrier; one thread interrupted while waiting",
+        expectedOutput: "Interrupted thread throws InterruptedException; other 2 threads throw BrokenBarrierException",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "65",
+    slug: "sleeping-barber-problem",
+    title: "Sleeping Barber Problem",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Semaphore", "Producer-Consumer", "Thread Coordination", "Mutex"],
+    order: 65,
+    description: `## Problem Statement
+
+Simulate the classic **Sleeping Barber** problem. A barber shop has:
+- **1 barber**: Sleeps when no customers are waiting; wakes up when a customer arrives.
+- **N waiting chairs**: Customers who find all chairs full leave (are turned away).
+- **1 barber chair**: Where the current customer is served.
+
+Customers arrive at random intervals. If the barber is busy and a waiting chair is available, the customer waits; otherwise the customer leaves.
+
+\`\`\`java
+class BarberShop {
+    public BarberShop(int waitingChairs) {}
+    // Called by barber thread
+    public void barber() throws InterruptedException {}
+    // Called by each customer thread (returns true if served, false if turned away)
+    public boolean customer(int customerId) throws InterruptedException {}
+    public int getCustomersServed() {}
+    public int getCustomersTurnedAway() {}
+}
+\`\`\`
+
+## Key Entities
+- **Semaphore \`customers\`**: Counts waiting customers (barber acquires this to start serving).
+- **Semaphore \`barberReady\`**: Customer waits on this until barber is ready to serve them.
+- **Mutex \`waitingMutex\`**: Protects \`waitingCount\`.
+- **waitingCount**: Number of customers currently in waiting chairs.
+
+## Requirements
+1. Barber sleeps when no customers are waiting and wakes on customer arrival.
+2. Customer leaves immediately if all \`N\` waiting chairs are occupied.
+3. No race conditions on \`waitingCount\`.
+4. System terminates cleanly when told to close (no more customers arrive).
+
+> **Asked at:** Google, Amazon, Microsoft, Oracle, Uber`,
+    constraints: `- 1 ≤ waitingChairs ≤ 20
+- Customers arrive concurrently from multiple threads.
+- Barber runs in a dedicated loop thread.
+- Haircut duration is simulated by a configurable sleep time.`,
+    hints: [
+      "Three semaphores: customers(0) \u2014 barber waits on this; barberReady(0) \u2014 customer waits on this; mutex(1) \u2014 protects waitingCount.",
+      "Customer: lock mutex, check waitingCount < N, increment waitingCount, unlock, signal customers, wait on barberReady.",
+      "Barber: wait on customers (sleep until customer arrives), lock mutex, decrement waitingCount, unlock, signal barberReady (wake customer), do haircut.",
+      "For shutdown: send a poison pill (special customer that signals barber to exit loop).",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Sleeping Barber Problem
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        SleepingBarberProblem solution = new SleepingBarberProblem();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class SleepingBarberProblem {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public SleepingBarberProblem() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Sleeping Barber Problem
+
+class SleepingBarberProblem {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    SleepingBarberProblem() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    SleepingBarberProblem solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Sleeping Barber Problem
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class SleepingBarberProblem {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new SleepingBarberProblem();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "sleeping-barber-problem-tc1",
+        description: "Test case 1",
+        input: "waitingChairs=3; 10 customers arrive in rapid succession",
+        expectedOutput: "1 customer in barber chair + 3 in waiting = 4 served; 6 turned away",
+        isHidden: false,
+      },
+      {
+        id: "sleeping-barber-problem-tc2",
+        description: "Test case 2",
+        input: "waitingChairs=5; customers arrive at 500ms intervals, haircut takes 300ms",
+        expectedOutput: "All customers served (queue never fills); 0 turned away",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "66",
+    slug: "concurrent-bank-account-transfer",
+    title: "Concurrent Bank Account Transfer",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Mutex", "Deadlock", "Lock Ordering", "Atomic Operations", "Transaction"],
+    order: 66,
+    description: `## Problem Statement
+
+Design a **thread-safe bank account system** that supports concurrent deposits, withdrawals, and transfers between accounts. The key challenge is implementing \`transfer(from, to, amount)\` without deadlock, race conditions, or lost updates.
+
+\`\`\`java
+class BankAccount {
+    private final int id;
+    private long balance;
+    public BankAccount(int id, long initialBalance) {}
+    public void deposit(long amount) {}
+    public boolean withdraw(long amount) {} // Returns false if insufficient funds
+    public long getBalance() {}
+    public int getId() {}
+}
+
+class Bank {
+    public Bank() {}
+    public void addAccount(BankAccount account) {}
+    // Thread-safe transfer — must be atomic (no partial state)
+    public boolean transfer(int fromId, int toId, long amount) {}
+    public long totalBalance() {} // Sum must remain constant (conservation law)
+}
+\`\`\`
+
+## Key Entities
+- **BankAccount**: Individual account with balance and a per-account ReentrantLock.
+- **Bank**: Manages multiple accounts; coordinates cross-account operations.
+- **Lock ordering**: To prevent deadlock in transfer(), always acquire locks in account-ID order.
+
+## Requirements
+1. Deposit and withdraw must be atomic per account.
+2. Transfer must be atomic across both accounts — no partial state (either both debit+credit happen or neither).
+3. Deadlock-free for concurrent transfers between any pair of accounts.
+4. \`totalBalance()\` must always return the same sum (money conservation).
+5. Insufficient funds must be handled gracefully.
+
+> **Asked at:** Amazon, Google, Morgan Stanley, Goldman Sachs, Visa, PayPal, Paytm, Razorpay`,
+    constraints: `- Account IDs are unique positive integers.
+- Balances are non-negative longs.
+- Up to 1000 concurrent transfer operations.
+- Circular transfers (A→B→C→A concurrently) must not deadlock.
+- totalBalance() must return correct sum even during concurrent transfers.`,
+    hints: [
+      "The classic deadlock scenario: Thread 1 locks account A then B while Thread 2 locks B then A. Fix: always acquire locks in ascending account ID order.",
+      "In transfer(): `BankAccount first = fromId < toId ? from : to; BankAccount second = ...` \u2014 acquire first.lock() then second.lock().",
+      "Use per-account ReentrantLocks (not synchronized on account object) for finer control.",
+      "totalBalance() should acquire all account locks (or use a global read lock) to get a consistent snapshot.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Concurrent Bank Account Transfer
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ConcurrentBankAccountTran solution = new ConcurrentBankAccountTran();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class ConcurrentBankAccountTran {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public ConcurrentBankAccountTran() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Concurrent Bank Account Transfer
+
+class ConcurrentBankAccountTran {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    ConcurrentBankAccountTran() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    ConcurrentBankAccountTran solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Concurrent Bank Account Transfer
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class ConcurrentBankAccountTran {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new ConcurrentBankAccountTran();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "concurrent-bank-account-transfer-tc1",
+        description: "Test case 1",
+        input: "3 accounts with $1000 each; 100 concurrent random transfers between them",
+        expectedOutput: "totalBalance() always returns $3000; no account goes negative; no deadlock",
+        isHidden: false,
+      },
+      {
+        id: "concurrent-bank-account-transfer-tc2",
+        description: "Test case 2",
+        input: "transfer(A\u2192B, $500) and transfer(B\u2192A, $300) concurrently with A.balance=500, B.balance=300",
+        expectedOutput: "One transfer completes first; final balances always sum to $800; no lost updates",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "67",
+    slug: "async-task-executor",
+    title: "Async Task Executor",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["ExecutorService", "Future", "CompletableFuture", "Thread Pool", "Async"],
+    order: 67,
+    description: `## Problem Statement
+
+Design an **Async Task Executor** that accepts tasks with optional dependencies. A task should only execute after all its dependent tasks have completed. Tasks with no pending dependencies run immediately (in parallel). The executor manages a thread pool internally.
+
+\`\`\`java
+class AsyncTaskExecutor {
+    public AsyncTaskExecutor(int threadPoolSize) {}
+    // Submit a task with no dependencies
+    public Future<Void> submit(String taskId, Runnable task) {}
+    // Submit a task that depends on listed taskIds completing first
+    public Future<Void> submit(String taskId, Runnable task, List<String> dependsOn) {}
+    public void shutdown() throws InterruptedException {}
+    public TaskStatus getStatus(String taskId) {}
+    public long getCompletionTime(String taskId) {}
+}
+
+enum TaskStatus { PENDING, RUNNING, COMPLETED, FAILED }
+\`\`\`
+
+## Key Entities
+- **ExecutorService**: Underlying thread pool for task execution.
+- **CompletableFuture**: Represents async task completion and chains dependencies.
+- **DAG (Directed Acyclic Graph)**: Tracks task dependency graph.
+- **ConcurrentHashMap<String, CompletableFuture>**: Maps taskId → future for dependency resolution.
+
+## Requirements
+1. Tasks with satisfied dependencies run immediately on the thread pool.
+2. A task waits (non-blocking for the caller) until all its dependencies complete.
+3. If a dependency fails, dependent tasks are marked FAILED too (cascading failure).
+4. Detect and reject cyclic dependencies.
+5. Thread-safe status tracking.
+
+> **Asked at:** Google, Amazon, Microsoft, Uber, Netflix, Airbnb, LinkedIn`,
+    constraints: `- Task IDs are unique non-empty strings.
+- Dependency graph must be a DAG (no cycles).
+- Thread pool size: 1–50.
+- A task submitted before its dependencies exist should queue until dependencies are submitted.
+- Circular dependencies should throw IllegalArgumentException.`,
+    hints: [
+      "Use CompletableFuture.allOf(dep1Future, dep2Future).thenRunAsync(task, executor) to chain dependencies elegantly.",
+      "Store a Map<String, CompletableFuture<Void>>; when submitting with deps, look up each dep's future and use allOf().thenRunAsync().",
+      "Track status in a ConcurrentHashMap<String, TaskStatus>; update it in the task's whenComplete() callback.",
+      "Cycle detection: before accepting a task, do DFS from its node in the dependency graph to ensure no path loops back.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Async Task Executor
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        AsyncTaskExecutor solution = new AsyncTaskExecutor();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class AsyncTaskExecutor {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public AsyncTaskExecutor() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Async Task Executor
+
+class AsyncTaskExecutor {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    AsyncTaskExecutor() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    AsyncTaskExecutor solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Async Task Executor
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class AsyncTaskExecutor {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new AsyncTaskExecutor();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "async-task-executor-tc1",
+        description: "Test case 1",
+        input: "Tasks: A(no deps), B(deps=[A]), C(deps=[A]), D(deps=[B,C]); submit in order A,B,C,D",
+        expectedOutput: "A runs first; B and C run in parallel after A; D runs after both B and C complete",
+        isHidden: false,
+      },
+      {
+        id: "async-task-executor-tc2",
+        description: "Test case 2",
+        input: "Submit task B with deps=[A] before submitting A",
+        expectedOutput: "B waits; when A is submitted and completes, B starts automatically",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "68",
+    slug: "object-pool-pattern",
+    title: "Object Pool Pattern",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Object Pool", "BlockingQueue", "Semaphore", "Resource Management", "Connection Pool"],
+    order: 68,
+    description: `## Problem Statement
+
+Design a **generic, thread-safe Object Pool** that manages reusable expensive-to-create objects (e.g., database connections, socket connections, parser instances). Objects are borrowed from the pool, used, and returned. If no objects are available, the caller blocks (or times out).
+
+\`\`\`java
+class ObjectPool<T> {
+    public ObjectPool(int maxSize, Supplier<T> factory) {}
+    // Borrow an object; blocks until one is available (or timeout)
+    public T acquire() throws InterruptedException {}
+    public T acquire(long timeout, TimeUnit unit) throws InterruptedException, TimeoutException {}
+    // Return object to pool for reuse
+    public void release(T obj) {}
+    // Release object permanently (don't return to pool)
+    public void invalidate(T obj) {}
+    public int availableCount() {}
+    public void shutdown() {}
+}
+\`\`\`
+
+## Key Entities
+- **BlockingDeque/BlockingQueue**: Holds available pooled objects.
+- **Semaphore(maxSize)**: Limits concurrent borrows to pool size.
+- **Factory (Supplier<T>)**: Creates new objects when pool is initially filling.
+- **Set<T> borrowed**: Tracks all objects currently in use (for validation in release).
+
+## Requirements
+1. Lazy initialization: create objects only when needed (up to maxSize).
+2. \`acquire()\` blocks when all objects are borrowed; \`acquire(timeout)\` returns null on timeout.
+3. \`release()\` must return a valid, non-null object back to the pool.
+4. \`invalidate()\` removes the object permanently and may trigger creation of a replacement.
+5. Pool must be thread-safe for concurrent borrows and returns.
+
+> **Asked at:** Amazon, Google, Oracle, Netflix, Uber, LinkedIn`,
+    constraints: `- 1 ≤ maxSize ≤ 100
+- Objects must not be returned to the pool more than once (double-return detection).
+- Timeout precision: millisecond granularity.
+- Pool must not create more than maxSize objects total.
+- shutdown() must drain remaining borrows and close/destroy all objects.`,
+    hints: [
+      "Use a BlockingDeque<T> with capacity=maxSize; acquire() calls deque.take() (blocking) or deque.poll(timeout) (with timeout).",
+      "On first acquire() when deque is empty but totalCreated < maxSize, create a new object via factory.get() instead of blocking.",
+      "Maintain an AtomicInteger for totalCreated; when invalidate() is called, decrement it so a replacement can be created later.",
+      "Track borrowed objects in a ConcurrentHashSet to detect double-return: if release() is called with an object not in borrowed set, throw IllegalStateException.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Object Pool Pattern
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ObjectPoolPattern solution = new ObjectPoolPattern();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class ObjectPoolPattern {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public ObjectPoolPattern() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Object Pool Pattern
+
+class ObjectPoolPattern {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    ObjectPoolPattern() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    ObjectPoolPattern solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Object Pool Pattern
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class ObjectPoolPattern {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new ObjectPoolPattern();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "object-pool-pattern-tc1",
+        description: "Test case 1",
+        input: "pool(maxSize=3, factory=DBConnection::new); 5 threads acquire; first 3 succeed immediately; next 2 block",
+        expectedOutput: "First 3 acquire instantly; threads 4 and 5 unblock when connections are released; pool size never exceeds 3",
+        isHidden: false,
+      },
+      {
+        id: "object-pool-pattern-tc2",
+        description: "Test case 2",
+        input: "pool(maxSize=2); acquire with timeout=100ms when pool exhausted",
+        expectedOutput: "TimeoutException thrown after ~100ms; pool state unchanged",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "69",
+    slug: "pub-sub-event-bus",
+    title: "Pub-Sub Event Bus with Multiple Threads",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Pub-Sub", "Observer Pattern", "BlockingQueue", "Thread Pool", "ConcurrentHashMap"],
+    order: 69,
+    description: `## Problem Statement
+
+Design a **thread-safe, asynchronous Pub-Sub message bus** where publishers emit messages to named topics and subscribers receive messages for their subscribed topics. Message delivery must be **asynchronous** — publishers must not block waiting for subscribers to process messages.
+
+\`\`\`java
+interface Subscriber {
+    void onMessage(String topic, Object message);
+}
+
+class EventBus {
+    public EventBus(int deliveryThreadPoolSize) {}
+    public void subscribe(String topic, Subscriber subscriber) {}
+    public void unsubscribe(String topic, Subscriber subscriber) {}
+    public void publish(String topic, Object message) {}
+    public void shutdown() throws InterruptedException {}
+    public int subscriberCount(String topic) {}
+}
+\`\`\`
+
+## Key Entities
+- **ConcurrentHashMap<String, CopyOnWriteArraySet<Subscriber>>**: Topic → subscriber set.
+- **ExecutorService**: Async delivery of messages to subscribers.
+- **CopyOnWriteArraySet**: Allows concurrent subscription changes without blocking publishers.
+- **Message envelope**: Topic + payload + timestamp.
+
+## Requirements
+1. Publishers call \`publish()\` and return immediately (non-blocking).
+2. Each subscriber's \`onMessage()\` is called asynchronously via the thread pool.
+3. Subscribers can subscribe/unsubscribe at any time without blocking publishers.
+4. Messages to a topic are delivered to all subscribers of that topic.
+5. Slow subscribers must not block other subscribers from receiving messages.
+
+> **Asked at:** Amazon, Google, Microsoft, Uber, Netflix, LinkedIn, Flipkart`,
+    constraints: `- Topic names are non-null, non-empty strings.
+- A subscriber may subscribe to multiple topics.
+- Multiple subscribers per topic must all receive every published message.
+- Message ordering per subscriber should be preserved (messages to the same subscriber are delivered in publish order).
+- shutdown() completes delivery of all in-flight messages before stopping.`,
+    hints: [
+      "Use CopyOnWriteArrayList<Subscriber> per topic \u2014 reads (publish) are lock-free; writes (subscribe/unsubscribe) copy the array.",
+      "For per-subscriber ordering: give each subscriber a dedicated single-threaded executor (or a per-subscriber BlockingQueue polled by a worker thread).",
+      "In publish(): look up subscribers under ConcurrentHashMap, then submit executor.submit(() -> subscriber.onMessage(topic, msg)) for each.",
+      "Use a shared ExecutorService for delivery but ensure per-subscriber FIFO by partitioning: executor.submit with a key-based thread selection (e.g., subscriber.hashCode() % nThreads).",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Pub-Sub Event Bus with Multiple Threads
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        PubsubEventBusWithMultipl solution = new PubsubEventBusWithMultipl();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class PubsubEventBusWithMultipl {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public PubsubEventBusWithMultipl() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Pub-Sub Event Bus with Multiple Threads
+
+class PubsubEventBusWithMultipl {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    PubsubEventBusWithMultipl() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    PubsubEventBusWithMultipl solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Pub-Sub Event Bus with Multiple Threads
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class PubsubEventBusWithMultipl {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new PubsubEventBusWithMultipl();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "pub-sub-event-bus-tc1",
+        description: "Test case 1",
+        input: "3 subscribers on 'news' topic; publisher sends 5 messages rapidly",
+        expectedOutput: "All 3 subscribers receive all 5 messages; publisher returns immediately; delivery is async",
+        isHidden: false,
+      },
+      {
+        id: "pub-sub-event-bus-tc2",
+        description: "Test case 2",
+        input: "Subscriber A unsubscribes from 'sports' while publisher is actively publishing",
+        expectedOutput: "A receives all messages published before unsubscribe; none after; no ConcurrentModificationException",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "70",
+    slug: "circuit-breaker",
+    title: "Circuit Breaker",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Circuit Breaker", "State Machine", "Atomic Operations", "Resilience", "Concurrent Design"],
+    order: 70,
+    description: `## Problem Statement
+
+Implement a **thread-safe Circuit Breaker** that wraps calls to an external service and prevents cascading failures. The circuit breaker has three states:
+
+- **CLOSED** (normal): Requests pass through. Count failures.
+- **OPEN** (tripped): Requests fail fast (no actual call). After a timeout, transitions to HALF_OPEN.
+- **HALF_OPEN** (recovery probe): Allow one request through. If it succeeds → CLOSED; if it fails → OPEN again.
+
+\`\`\`java
+class CircuitBreaker {
+    public CircuitBreaker(int failureThreshold, long openTimeoutMs, int successThreshold) {}
+    // Execute the supplier; handle circuit logic
+    public <T> T execute(Supplier<T> operation) throws CircuitOpenException {}
+    public CircuitState getState() {}
+    public int getFailureCount() {}
+    public void reset() {}
+}
+
+enum CircuitState { CLOSED, OPEN, HALF_OPEN }
+class CircuitOpenException extends RuntimeException {}
+\`\`\`
+
+## Key Entities
+- **State machine**: Atomic state transitions (CLOSED→OPEN, OPEN→HALF_OPEN, HALF_OPEN→CLOSED/OPEN).
+- **AtomicInteger failureCount**: Thread-safe failure counter.
+- **AtomicReference<CircuitState>**: Current state with CAS-based transitions.
+- **lastOpenTime**: Timestamp when circuit opened; used to compute reset timeout.
+
+## Requirements
+1. CLOSED → OPEN when \`failureCount >= failureThreshold\`.
+2. OPEN → HALF_OPEN after \`openTimeoutMs\` milliseconds.
+3. HALF_OPEN → CLOSED after \`successThreshold\` consecutive successes.
+4. HALF_OPEN → OPEN on any single failure.
+5. All state transitions must be atomic and thread-safe.
+
+> **Asked at:** Netflix, Amazon, Microsoft, Uber, Google, LinkedIn, Swiggy, Zomato`,
+    constraints: `- 1 ≤ failureThreshold ≤ 100
+- openTimeoutMs ≥ 100
+- 1 ≤ successThreshold ≤ 10
+- Concurrent threads calling execute() must observe consistent state.
+- Only one thread should probe in HALF_OPEN state (others fail fast).`,
+    hints: [
+      "Use AtomicReference<CircuitState> for state and AtomicInteger for failureCount to enable lock-free CAS transitions.",
+      "In execute(): if state == OPEN, check if openTimeoutMs has elapsed (compare System.currentTimeMillis() with lastOpenTime); if yes, CAS state to HALF_OPEN.",
+      "In HALF_OPEN, use a flag (AtomicBoolean probeInFlight) so only the first concurrent caller probes; others fail fast.",
+      "Sliding window variant: instead of a simple counter, track failure rate in the last N requests using a circular buffer.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Circuit Breaker
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        CircuitBreaker solution = new CircuitBreaker();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class CircuitBreaker {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public CircuitBreaker() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Circuit Breaker
+
+class CircuitBreaker {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    CircuitBreaker() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    CircuitBreaker solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Circuit Breaker
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class CircuitBreaker {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new CircuitBreaker();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "circuit-breaker-tc1",
+        description: "Test case 1",
+        input: "threshold=3, timeout=1000ms; first 3 calls throw exception",
+        expectedOutput: "After 3rd failure: state=OPEN; subsequent calls throw CircuitOpenException immediately; after 1000ms: state=HALF_OPEN; probe succeeds: state=CLOSED",
+        isHidden: false,
+      },
+      {
+        id: "circuit-breaker-tc2",
+        description: "Test case 2",
+        input: "threshold=2, timeout=500ms; 2 failures, wait 600ms, probe fails",
+        expectedOutput: "State goes CLOSED\u2192OPEN\u2192HALF_OPEN\u2192OPEN; failure count reset to 0 in re-opened state",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "71",
+    slug: "thread-safe-stack-and-queue",
+    title: "Thread-Safe Stack and Queue",
+    difficulty: "Easy",
+    category: "Concurrency",
+    tags: ["Mutex", "Semaphore", "Thread Safety", "Data Structures", "CAS"],
+    order: 71,
+    description: `## Problem Statement
+
+Implement two thread-safe data structures from scratch — a **stack** (LIFO) and a **queue** (FIFO) — without using Java's built-in concurrent collections. Both must support concurrent push/pop (or enqueue/dequeue) from multiple threads.
+
+\`\`\`java
+class ThreadSafeStack<T> {
+    public void push(T item) {}
+    public T pop() throws EmptyStackException {}
+    public T peek() throws EmptyStackException {}
+    public boolean isEmpty() {}
+    public int size() {}
+}
+
+class ThreadSafeQueue<T> {
+    public void enqueue(T item) {}
+    public T dequeue() throws NoSuchElementException {} // Non-blocking: throws if empty
+    public T dequeueBlocking() throws InterruptedException {} // Blocks until element available
+    public boolean isEmpty() {}
+    public int size() {}
+}
+\`\`\`
+
+## Key Entities
+- **LinkedList or array**: Internal storage.
+- **ReentrantLock / synchronized**: Mutual exclusion on structural modifications.
+- **Condition variable**: For \`dequeueBlocking()\` to await non-empty.
+- **AtomicReference** (bonus): Lock-free implementation using CAS (Treiber stack).
+
+## Requirements
+1. All operations are thread-safe.
+2. \`pop()\` and \`dequeue()\` throw on empty without blocking.
+3. \`dequeueBlocking()\` waits until an element is available.
+4. No data races or lost updates under concurrent access.
+5. Bonus: Implement the lock-free Treiber Stack using AtomicReference.
+
+> **Asked at:** Amazon, Google, Microsoft, Adobe, Flipkart`,
+    constraints: `- Stack and queue are unbounded (no capacity limit) unless specified.
+- Items are non-null objects.
+- Concurrent push+pop from 100 threads must not corrupt internal state.
+- isEmpty() and size() must return accurate values under concurrency.`,
+    hints: [
+      "For stack: use a LinkedList with synchronized push/pop, or AtomicReference<Node<T>> with CAS for lock-free Treiber stack.",
+      "For queue: use a head/tail pointer with separate head-lock and tail-lock (Michael-Scott queue approach) for higher throughput.",
+      "Treiber stack CAS loop: `do { top = head.get(); newNode.next = top; } while (!head.compareAndSet(top, newNode));`",
+      "For dequeueBlocking: use a ReentrantLock + Condition notEmpty; enqueue calls notEmpty.signal() after adding.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Thread-Safe Stack and Queue
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ThreadsafeStackAndQueue solution = new ThreadsafeStackAndQueue();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class ThreadsafeStackAndQueue {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public ThreadsafeStackAndQueue() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Thread-Safe Stack and Queue
+
+class ThreadsafeStackAndQueue {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    ThreadsafeStackAndQueue() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    ThreadsafeStackAndQueue solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Thread-Safe Stack and Queue
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class ThreadsafeStackAndQueue {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new ThreadsafeStackAndQueue();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "thread-safe-stack-and-queue-tc1",
+        description: "Test case 1",
+        input: "50 threads pushing integers 1-1000 into ThreadSafeStack, 50 threads popping",
+        expectedOutput: "All 1000 integers pushed and popped exactly once; LIFO order within each thread's operations",
+        isHidden: false,
+      },
+      {
+        id: "thread-safe-stack-and-queue-tc2",
+        description: "Test case 2",
+        input: "5 consumer threads call dequeueBlocking() on empty queue; 5 producers each enqueue 2 items",
+        expectedOutput: "Each consumer receives exactly 2 items; no thread starves; all 10 items delivered",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "72",
+    slug: "concurrent-ticket-booking-system",
+    title: "Concurrent Ticket Booking System",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Mutex", "Optimistic Locking", "CAS", "Race Condition", "Pessimistic Locking"],
+    order: 72,
+    description: `## Problem Statement
+
+Design a **concurrent ticket booking system** for a cinema/concert/flight that prevents double-booking when multiple users try to book the same seat simultaneously. The system must handle high concurrency while ensuring:
+1. A seat can only be booked by one user.
+2. Booking is transactional (reserve + confirm is atomic).
+3. Temporary holds expire if not confirmed within a timeout.
+
+\`\`\`java
+class TicketBookingSystem {
+    public TicketBookingSystem(int totalSeats) {}
+    // Returns seat number if successfully reserved, -1 if no seats available
+    public int reserveSeat(String userId) {}
+    // Confirm the reserved seat; returns false if hold expired
+    public boolean confirmBooking(String userId, int seatNumber) {}
+    // Release a seat back to available pool
+    public void cancelBooking(String userId, int seatNumber) {}
+    public List<Integer> getAvailableSeats() {}
+    public int availableSeatCount() {}
+}
+\`\`\`
+
+## Key Entities
+- **Seat state machine**: AVAILABLE → RESERVED → BOOKED → AVAILABLE (on cancel).
+- **ConcurrentHashMap<Integer, SeatState>**: Seat status with atomic CAS transitions.
+- **ReservationRegistry**: Maps userId → (seatNumber, reservationExpiry).
+- **ScheduledExecutorService**: Background task to expire timed-out holds.
+
+## Requirements
+1. Two users booking the same seat concurrently must result in exactly one success.
+2. Seat reservation holds expire after a configurable timeout (e.g., 10 minutes).
+3. Expired holds automatically release seats back to available pool.
+4. Support idempotent cancel operations.
+5. \`availableSeatCount()\` must return accurate real-time count.
+
+> **Asked at:** BookMyShow, Amazon, Paytm, Flipkart, Uber, Swiggy, MakeMyTrip, IRCTC`,
+    constraints: `- 1 ≤ totalSeats ≤ 100,000
+- Concurrent bookings from up to 10,000 simultaneous users.
+- Hold expiry timeout: 1 second to 30 minutes (configurable).
+- A user can only hold one reservation at a time.
+- System must handle thundering-herd scenarios (many users competing for last seat).`,
+    hints: [
+      "Use an AtomicInteger or Semaphore for available seat count; CAS on individual seat states prevents double-booking.",
+      "Seat state as AtomicReference<SeatState>: `seat.compareAndSet(AVAILABLE, RESERVED)` \u2014 only one thread succeeds even with 10,000 concurrent attempts.",
+      "Store holds in a ConcurrentHashMap<userId, HoldEntry>; HoldEntry has expiryTime; background job sweeps expired holds.",
+      "For pessimistic locking: maintain a per-seat lock (striped locking) and acquire it before checking+changing seat state.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Concurrent Ticket Booking System
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ConcurrentTicketBookingSy solution = new ConcurrentTicketBookingSy();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class ConcurrentTicketBookingSy {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public ConcurrentTicketBookingSy() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Concurrent Ticket Booking System
+
+class ConcurrentTicketBookingSy {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    ConcurrentTicketBookingSy() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    ConcurrentTicketBookingSy solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Concurrent Ticket Booking System
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class ConcurrentTicketBookingSy {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new ConcurrentTicketBookingSy();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "concurrent-ticket-booking-system-tc1",
+        description: "Test case 1",
+        input: "1 remaining seat; 100 users try to book simultaneously",
+        expectedOutput: "Exactly 1 booking succeeds; 99 receive 'no seats available'; no data corruption",
+        isHidden: false,
+      },
+      {
+        id: "concurrent-ticket-booking-system-tc2",
+        description: "Test case 2",
+        input: "User A reserves seat 5 but doesn't confirm within 10 seconds",
+        expectedOutput: "After 10s, seat 5 becomes available again; User B can now book it",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "73",
+    slug: "uber-surge-pricing-concurrent-system",
+    title: "Uber Surge Pricing Concurrent System",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Read-Write Lock", "ConcurrentHashMap", "Atomic Operations", "Pub-Sub", "Real-Time"],
+    order: 73,
+    description: `## Problem Statement
+
+Design the **concurrent demand-monitoring and surge pricing system** for a ride-sharing platform. The system tracks real-time ride requests and available drivers per geographic zone, computing a surge multiplier. Multiple threads concurrently update demand metrics and read surge prices.
+
+\`\`\`java
+class SurgePricingSystem {
+    public SurgePricingSystem(double baseSurgeThreshold) {}
+    // Called concurrently by request-handler threads
+    public void recordRideRequest(String zoneId) {}
+    // Called concurrently by driver-update threads
+    public void recordDriverAvailability(String zoneId, int availableDrivers) {}
+    // Called by pricing threads — must be fast (many reads per second)
+    public double getSurgeMultiplier(String zoneId) {}
+    // Background job: recalculate surge for all zones
+    public void recalculateSurge() {}
+    // Subscribe to surge changes
+    public void onSurgeChange(String zoneId, Consumer<Double> listener) {}
+}
+\`\`\`
+
+## Key Entities
+- **Zone metrics**: ConcurrentHashMap<String, ZoneMetrics> where ZoneMetrics holds request rate, driver count, and computed multiplier.
+- **ReadWriteLock per zone** (or StampedLock): Multiple readers (pricing) vs. exclusive writers (recalculation).
+- **ScheduledExecutorService**: Runs \`recalculateSurge()\` every N seconds.
+- **AtomicDouble / volatile double surgeMultiplier**: Frequently-read surge value per zone.
+
+## Requirements
+1. \`getSurgeMultiplier()\` must be extremely fast (microsecond latency) — it's on the critical path of every fare estimate.
+2. \`recordRideRequest()\` must be non-blocking — called from thousands of concurrent HTTP handler threads.
+3. Surge recalculation runs periodically in background without blocking the read path.
+4. Zone metrics updates (recordRideRequest, recordDriverAvailability) must be thread-safe.
+5. Surge change listeners are notified asynchronously when multiplier changes.
+
+> **Asked at:** Uber, Lyft, Ola, Grab, Amazon, Google`,
+    constraints: `- Up to 10,000 zones worldwide.
+- getSurgeMultiplier() is called ~1 million times per second.
+- recordRideRequest() is called ~100,000 times per second.
+- Surge recalculation runs every 30 seconds.
+- Surge multiplier is a double between 1.0 and 10.0.`,
+    hints: [
+      "Use AtomicLong for request counts (non-blocking increment), and volatile double for the surge multiplier (non-blocking read).",
+      "Use StampedLock for optimistic reads: `long stamp = lock.tryOptimisticRead(); double val = surge; if (!lock.validate(stamp)) { stamp = lock.readLock(); val = surge; lock.unlockRead(stamp); }`",
+      "Use LongAdder instead of AtomicLong for the highest-throughput request counting (reduces CAS contention).",
+      "Surge multiplier formula example: `multiplier = max(1.0, demandRate / (driverCount * baseCapacity))` \u2014 only updated by the background recalculation thread.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Uber Surge Pricing Concurrent System
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        UberSurgePricingConcurren solution = new UberSurgePricingConcurren();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class UberSurgePricingConcurren {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public UberSurgePricingConcurren() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Uber Surge Pricing Concurrent System
+
+class UberSurgePricingConcurren {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    UberSurgePricingConcurren() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    UberSurgePricingConcurren solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Uber Surge Pricing Concurrent System
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class UberSurgePricingConcurren {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new UberSurgePricingConcurren();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "uber-surge-pricing-concurrent-system-tc1",
+        description: "Test case 1",
+        input: "Zone 'NYC-Manhattan': 500 requests/min, 100 drivers; baseSurgeThreshold=2.0",
+        expectedOutput: "Surge multiplier = 2.5x; getSurgeMultiplier() returns within 1 microsecond",
+        isHidden: false,
+      },
+      {
+        id: "uber-surge-pricing-concurrent-system-tc2",
+        description: "Test case 2",
+        input: "1000 threads calling recordRideRequest('NYC') simultaneously with surge recalculation running",
+        expectedOutput: "No lost increments; request count increases by exactly 1000; no stale surge reads lasting >30 seconds",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "74",
+    slug: "multithreaded-logger-async-flush",
+    title: "Multithreaded Logger with Async Flush",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Producer-Consumer", "BlockingQueue", "Async", "Thread Pool", "Buffer"],
+    order: 74,
+    description: `## Problem Statement
+
+Design a **high-performance, thread-safe logger** that decouples log production (caller threads) from log I/O (disk/network writes) using an asynchronous flush mechanism. The logger must handle thousands of log calls per second without blocking the calling threads.
+
+\`\`\`java
+class AsyncLogger {
+    public enum Level { DEBUG, INFO, WARN, ERROR }
+    
+    public AsyncLogger(int bufferCapacity, Level minLevel, LogSink sink) {}
+    public void log(Level level, String message) {}
+    public void flush() throws InterruptedException {} // Force flush and wait
+    public void shutdown() throws InterruptedException {}
+    public long getDroppedLogCount() {}
+    public long getTotalLogCount() {}
+}
+
+interface LogSink {
+    void write(String formattedLogLine);
+    void flush();
+}
+\`\`\`
+
+## Key Entities
+- **Log buffer**: \`BlockingQueue<LogEntry>\` holding entries pending flush.
+- **Writer thread**: Single background thread draining the queue to the LogSink.
+- **LogEntry**: Immutable record of (timestamp, level, message, thread-name).
+- **Drop policy**: When buffer is full, either drop log (non-blocking) or block caller.
+
+## Requirements
+1. \`log()\` must never block calling threads — prefer dropping over blocking.
+2. Background writer thread handles batching and I/O.
+3. \`flush()\` must ensure all currently buffered logs are written before returning.
+4. \`shutdown()\` flushes all remaining logs then stops the writer thread.
+5. Track dropped log count for monitoring.
+
+> **Asked at:** Amazon, Google, Microsoft, Uber, Netflix, Flipkart, Paytm`,
+    constraints: `- 1 ≤ bufferCapacity ≤ 100,000
+- log() must complete in O(1) — never blocks (uses offer(), not put()).
+- Multiple threads call log() concurrently from different parts of the application.
+- Writer thread batches up to 100 entries per flush cycle for efficiency.
+- Timestamp precision: millisecond.`,
+    hints: [
+      "Use a LinkedBlockingQueue<LogEntry>(capacity); log() calls offer() (non-blocking, drops if full).",
+      "Background writer thread: `while (running || !queue.isEmpty()) { LogEntry e = queue.poll(100, ms); if (e != null) sink.write(format(e)); }`",
+      "For flush(): use a CountDownLatch(1); publish a special FLUSH_MARKER entry; writer thread counts down latch when it processes the marker; flush() awaits the latch.",
+      "Batch draining: `List<LogEntry> batch = new ArrayList<>(); queue.drainTo(batch, 100);` \u2014 more efficient than processing one at a time.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Multithreaded Logger with Async Flush
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        MultithreadedLoggerWithAs solution = new MultithreadedLoggerWithAs();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class MultithreadedLoggerWithAs {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public MultithreadedLoggerWithAs() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Multithreaded Logger with Async Flush
+
+class MultithreadedLoggerWithAs {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    MultithreadedLoggerWithAs() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    MultithreadedLoggerWithAs solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Multithreaded Logger with Async Flush
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class MultithreadedLoggerWithAs {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new MultithreadedLoggerWithAs();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "multithreaded-logger-async-flush-tc1",
+        description: "Test case 1",
+        input: "100 threads each calling log(INFO, ...) 1000 times; bufferCapacity=5000",
+        expectedOutput: "All 100,000 logs written to sink (none dropped); log() calls complete in <1 microsecond each",
+        isHidden: false,
+      },
+      {
+        id: "multithreaded-logger-async-flush-tc2",
+        description: "Test case 2",
+        input: "bufferCapacity=10; 1000 rapid log() calls; slow sink (10ms per write)",
+        expectedOutput: "~10 logs written; ~990 dropped; getDroppedLogCount() returns ~990; no exceptions thrown",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "75",
+    slug: "lock-free-treiber-stack",
+    title: "Lock-Free Stack (Treiber Stack)",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Lock-Free", "CAS", "AtomicReference", "ABA Problem", "Non-Blocking"],
+    order: 75,
+    description: `## Problem Statement
+
+Implement a **lock-free, concurrent stack** using only atomic Compare-And-Swap (CAS) operations — no locks, no synchronized blocks. This is known as the **Treiber Stack**. Additionally, identify and address the ABA problem.
+
+\`\`\`java
+class LockFreeStack<T> {
+    public void push(T value) {}         // Non-blocking push
+    public T pop() {}                    // Returns null if empty (non-blocking)
+    public T peek() {}                   // Returns top without removing
+    public boolean isEmpty() {}
+    public int size() {}                 // Approximate (not linearizable)
+    
+    // Demonstrate ABA problem
+    public void pushWithABAProblem(T value) {}
+    // ABA-safe variant using AtomicStampedReference
+    public void pushABASafe(T value) {}
+    public T popABASafe() {}
+}
+\`\`\`
+
+## Key Entities
+- **AtomicReference<Node<T>> head**: The stack's top, updated with CAS.
+- **Node<T>**: Immutable node with value and next pointer.
+- **CAS loop**: Optimistic retry loop: read head, build new node, CAS head to new node.
+- **AtomicStampedReference**: Used in the ABA-safe variant to detect hidden changes.
+
+## Requirements
+1. \`push()\` and \`pop()\` must be lock-free (no mutexes or synchronized blocks).
+2. Correctness under high contention (many threads pushing/popping simultaneously).
+3. Explain and demonstrate the ABA problem with a concrete example.
+4. Implement ABA-safe variant using AtomicStampedReference.
+5. Characterize the progress guarantee: lock-free (some thread always makes progress) vs. wait-free.
+
+> **Asked at:** Google, Amazon, Microsoft, Palantir, Two Sigma, Jane Street`,
+    constraints: `- All operations use only atomic primitives (no locks).
+- Must be correct under any thread interleaving.
+- ABA demonstration must show a scenario where naive CAS succeeds but is semantically wrong.
+- size() is best-effort (allowed to be approximate); isEmpty() should be accurate.
+- Memory reclamation: note hazard pointers / epoch-based reclamation as follow-up.`,
+    hints: [
+      "push(): `Node<T> newHead, oldHead; do { oldHead = head.get(); newHead = new Node<>(val, oldHead); } while (!head.compareAndSet(oldHead, newHead));`",
+      "pop(): `Node<T> oldHead, newHead; do { oldHead = head.get(); if (oldHead == null) return null; newHead = oldHead.next; } while (!head.compareAndSet(oldHead, newHead)); return oldHead.value;`",
+      "ABA example: Thread 1 reads head=A. Thread 2 pops A and B then pushes A again. Thread 1's CAS succeeds but now B is lost.",
+      "AtomicStampedReference solution: pair each reference with an integer stamp (version counter); CAS checks both reference and stamp.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Lock-Free Stack (Treiber Stack)
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        LockfreeStackTreiberStack solution = new LockfreeStackTreiberStack();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class LockfreeStackTreiberStack {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public LockfreeStackTreiberStack() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Lock-Free Stack (Treiber Stack)
+
+class LockfreeStackTreiberStack {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    LockfreeStackTreiberStack() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    LockfreeStackTreiberStack solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Lock-Free Stack (Treiber Stack)
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class LockfreeStackTreiberStack {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new LockfreeStackTreiberStack();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "lock-free-treiber-stack-tc1",
+        description: "Test case 1",
+        input: "1000 threads each pushing 100 items, 1000 threads each popping",
+        expectedOutput: "All 100,000 items pushed and popped exactly once; LIFO order per thread; no lock ever acquired",
+        isHidden: false,
+      },
+      {
+        id: "lock-free-treiber-stack-tc2",
+        description: "Test case 2",
+        input: "ABA scenario: push(A), push(B), pop()\u2192B, pop()\u2192A, push(A); concurrent thread with saved ref to original A",
+        expectedOutput: "Without stamp: CAS incorrectly succeeds; With AtomicStampedReference: CAS correctly fails and retries",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "76",
+    slug: "thread-safe-concurrent-hashmap",
+    title: "Thread-Safe Concurrent HashMap",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Lock Striping", "ConcurrentHashMap", "Read-Write Lock", "Hash Table", "Segmented Locking"],
+    order: 76,
+    description: `## Problem Statement
+
+Implement a **high-concurrency thread-safe HashMap** using lock striping (segmented locking). The map is divided into N segments, each protected by its own ReentrantReadWriteLock. This allows multiple threads to read and write to different segments concurrently, dramatically reducing contention compared to a single global lock.
+
+\`\`\`java
+class StripedHashMap<K, V> {
+    public StripedHashMap(int initialCapacity, int concurrencyLevel) {}
+    public V get(K key) {}
+    public V put(K key, V value) {}
+    public V remove(K key) {}
+    public boolean containsKey(K key) {}
+    public int size() {}           // Approximate (sum across segments)
+    public V putIfAbsent(K key, V value) {}
+    public V computeIfAbsent(K key, Function<K,V> mappingFn) {}
+    public void clear() {}
+}
+\`\`\`
+
+## Key Entities
+- **Segment array**: Array of N \`Segment<K,V>\` objects (default N=16 matching Java's ConcurrentHashMap).
+- **Segment**: Each is a small HashMap + ReentrantReadWriteLock.
+- **Stripe function**: \`segmentIndex = (key.hashCode() >>> segmentShift) & segmentMask\`.
+- **Resize logic**: Per-segment resize when load factor threshold exceeded.
+
+## Requirements
+1. Concurrent reads within the same segment must not block each other.
+2. A write in one segment must not block reads/writes in other segments.
+3. \`putIfAbsent()\` and \`computeIfAbsent()\` must be atomic (check + insert is one critical section).
+4. \`size()\` is allowed to be approximate (sum of per-segment counts).
+5. Handle hash collisions via chaining or open addressing.
+
+> **Asked at:** Google, Amazon, Microsoft, Facebook, Oracle, Uber, LinkedIn`,
+    constraints: `- concurrencyLevel determines the number of segments (rounds up to next power of 2).
+- Load factor for per-segment resize: 0.75.
+- Keys and values are non-null.
+- No use of Java's ConcurrentHashMap or Hashtable internally.
+- Segment count is fixed after construction (no global rehashing).`,
+    hints: [
+      "Compute segment index: `int idx = (h ^ (h >>> 16)) & (segments.length - 1)` where h = key.hashCode().",
+      "Each segment holds a `HashMap<K,V>` and a `ReentrantReadWriteLock`. get() uses readLock(); put() uses writeLock().",
+      "For size(): iterate all segments, sum their individual sizes \u2014 acceptable approximation for highly concurrent maps.",
+      "computeIfAbsent(): acquire writeLock on the segment, check if key exists, only compute and insert if absent \u2014 all under the lock.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Thread-Safe Concurrent HashMap
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ThreadsafeConcurrentHashm solution = new ThreadsafeConcurrentHashm();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class ThreadsafeConcurrentHashm {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public ThreadsafeConcurrentHashm() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Thread-Safe Concurrent HashMap
+
+class ThreadsafeConcurrentHashm {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    ThreadsafeConcurrentHashm() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    ThreadsafeConcurrentHashm solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Thread-Safe Concurrent HashMap
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class ThreadsafeConcurrentHashm {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new ThreadsafeConcurrentHashm();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "thread-safe-concurrent-hashmap-tc1",
+        description: "Test case 1",
+        input: "concurrencyLevel=16; 32 threads each inserting 1000 unique key-value pairs",
+        expectedOutput: "All 32,000 entries present; no data loss; size() \u2248 32,000; threads in different segments never block each other",
+        isHidden: false,
+      },
+      {
+        id: "thread-safe-concurrent-hashmap-tc2",
+        description: "Test case 2",
+        input: "16 readers calling get() on existing keys + 4 writers calling put() on new keys simultaneously",
+        expectedOutput: "Readers in different segments than writers proceed without any blocking",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "77",
+    slug: "countdown-latch-from-scratch",
+    title: "Countdown Latch from Scratch",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Semaphore", "CountDownLatch", "Barrier", "Thread Coordination", "AQS"],
+    order: 77,
+    description: `## Problem Statement
+
+Implement **CountDownLatch** from scratch — a synchronization primitive that allows one or more threads to wait until a set of operations being performed in other threads complete.
+
+The latch is initialized with a count N. Threads that must wait call \`await()\`. Other threads call \`countDown()\` to decrement the count. When the count reaches zero, all waiting threads are released.
+
+\`\`\`java
+class MyCountDownLatch {
+    public MyCountDownLatch(int count) {}
+    // Blocks until count reaches zero (or thread is interrupted)
+    public void await() throws InterruptedException {}
+    // Blocks with timeout — returns false if timed out before count=0
+    public boolean await(long timeout, TimeUnit unit) throws InterruptedException {}
+    // Decrements count; releases all waiters when count reaches 0
+    public void countDown() {}
+    public long getCount() {}
+}
+\`\`\`
+
+## Key Entities
+- **AtomicInteger count**: Decremented by \`countDown()\`, checked by \`await()\`.
+- **ReentrantLock + Condition**: Waiting threads sleep on the condition; last \`countDown()\` signals all.
+- **Volatile flag \`released\`**: Set when count hits 0; fast-path check in await().
+
+## Requirements
+1. \`await()\` blocks until count reaches exactly zero.
+2. \`countDown()\` on a latch already at zero has no effect.
+3. Multiple threads can \`await()\` simultaneously — all released when count hits 0.
+4. \`await(timeout, unit)\` returns true if released in time, false if timed out.
+5. Once released, subsequent calls to \`await()\` return immediately.
+
+> **Asked at:** Amazon, Google, Microsoft, Adobe, Oracle, Uber`,
+    constraints: `- 1 ≤ initial count ≤ 10,000
+- Any number of threads may call await() simultaneously.
+- countDown() may be called from different threads.
+- The latch is not reusable (unlike CyclicBarrier) — once released, it stays released.
+- Thread interruption during await() must propagate InterruptedException.`,
+    hints: [
+      "Use ReentrantLock + Condition zero; countDown() decrements AtomicInteger; if new value is 0, call zero.signalAll().",
+      "await() checks if count == 0 first (fast path with volatile), otherwise acquires lock and waits in a while loop: `while (count.get() > 0) zero.await();`",
+      "For timed await(): use `zero.await(timeout, unit)` and check count again on return.",
+      "Edge case: what if countDown() is called 0 times but count is already 0 at construction? await() should return immediately.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Countdown Latch from Scratch
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        CountdownLatchFromScratch solution = new CountdownLatchFromScratch();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class CountdownLatchFromScratch {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public CountdownLatchFromScratch() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Countdown Latch from Scratch
+
+class CountdownLatchFromScratch {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    CountdownLatchFromScratch() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    CountdownLatchFromScratch solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Countdown Latch from Scratch
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class CountdownLatchFromScratch {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new CountdownLatchFromScratch();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "countdown-latch-from-scratch-tc1",
+        description: "Test case 1",
+        input: "latch(3); main thread calls await(); 3 worker threads each call countDown() after 100ms",
+        expectedOutput: "Main thread unblocks after all 3 countDowns; blocked for ~100ms total",
+        isHidden: false,
+      },
+      {
+        id: "countdown-latch-from-scratch-tc2",
+        description: "Test case 2",
+        input: "latch(1); 100 threads call await() simultaneously; 1 thread calls countDown()",
+        expectedOutput: "All 100 await() calls return simultaneously when count hits 0",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "78",
+    slug: "semaphore-from-scratch",
+    title: "Semaphore from Scratch",
+    difficulty: "Medium",
+    category: "Concurrency",
+    tags: ["Semaphore", "Mutex", "Resource Management", "Thread Coordination", "AQS"],
+    order: 78,
+    description: `## Problem Statement
+
+Implement a **Semaphore** from scratch (do not use Java's \`java.util.concurrent.Semaphore\`). A semaphore maintains a set of permits. \`acquire()\` blocks until a permit is available and then takes one. \`release()\` adds a permit, potentially unblocking a waiting thread.
+
+Implement both **fair** (FIFO ordering) and **non-fair** variants.
+
+\`\`\`java
+class MySemaphore {
+    public MySemaphore(int permits) {}
+    public MySemaphore(int permits, boolean fair) {}
+    // Acquires 1 permit (blocks if none available)
+    public void acquire() throws InterruptedException {}
+    // Acquires N permits atomically
+    public void acquire(int permits) throws InterruptedException {}
+    // Returns true if acquired within timeout, false otherwise
+    public boolean tryAcquire(long timeout, TimeUnit unit) throws InterruptedException {}
+    public void release() {}
+    public void release(int permits) {}
+    public int availablePermits() {}
+    public int getQueueLength() {}
+}
+\`\`\`
+
+## Key Entities
+- **permits**: AtomicInteger counting available permits.
+- **ReentrantLock + Condition notEmpty**: Waiting threads sleep here; released when permits become available.
+- **Wait queue**: For fair semaphore, a Queue<Thread> or FIFO Condition queue.
+
+## Requirements
+1. Binary semaphore (permits=1) must behave like a mutex.
+2. Counting semaphore with N permits allows N concurrent accesses.
+3. Fair variant: threads are released in FIFO order (no starvation).
+4. Non-fair variant: no ordering guarantee (barging allowed — higher throughput).
+5. \`acquire(N)\` must atomically acquire all N permits or block.
+
+> **Asked at:** Google, Amazon, Microsoft, Oracle, Adobe, Uber, Goldman Sachs`,
+    constraints: `- 0 ≤ permits ≤ Integer.MAX_VALUE
+- release() on a zero-permit binary semaphore must increment to 1 (no cap unless explicitly set).
+- Fair mode must guarantee FIFO ordering among waiting threads.
+- acquire(N) where N > totalPermits should never complete (deadlock-avoid scenario).
+- Thread interruption must propagate InterruptedException from acquire().`,
+    hints: [
+      "Core: `synchronized acquire() { while (permits == 0) wait(); permits--; }` and `synchronized release() { permits++; notify(); }`",
+      "For fair semaphore: use a LinkedList<Condition> queue; acquire() adds a new Condition to the tail and awaits it; release() signals the head condition.",
+      "Upgrade to ReentrantLock for interruptible acquires and timed tryAcquire.",
+      "For acquire(N): check `while (permits < N) condition.await();` \u2014 be careful about waking up threads that can't proceed due to partial permits.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Semaphore from Scratch
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        SemaphoreFromScratch solution = new SemaphoreFromScratch();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class SemaphoreFromScratch {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public SemaphoreFromScratch() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Semaphore from Scratch
+
+class SemaphoreFromScratch {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    SemaphoreFromScratch() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    SemaphoreFromScratch solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Semaphore from Scratch
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class SemaphoreFromScratch {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new SemaphoreFromScratch();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "semaphore-from-scratch-tc1",
+        description: "Test case 1",
+        input: "semaphore(3); 10 threads each call acquire() then sleep(200ms) then release()",
+        expectedOutput: "At any time, exactly 3 threads are active; remaining 7 wait; all complete without deadlock",
+        isHidden: false,
+      },
+      {
+        id: "semaphore-from-scratch-tc2",
+        description: "Test case 2",
+        input: "fair semaphore(1); 5 threads acquire in order T1,T2,T3,T4,T5; T1 holds, then releases",
+        expectedOutput: "T2 acquires next (FIFO); then T3, T4, T5 in order; no barging",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "79",
+    slug: "delayed-task-scheduler",
+    title: "Delayed Task Scheduler",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Priority Queue", "Delayed Queue", "Thread Pool", "ScheduledExecutorService", "Timer Wheel"],
+    order: 79,
+    description: `## Problem Statement
+
+Design a **thread-safe delayed task scheduler** that executes tasks at specified times in the future. Tasks can be one-time (execute once at a specified delay) or recurring (execute at fixed intervals). The scheduler must be efficient for a large number of pending tasks.
+
+\`\`\`java
+class TaskScheduler {
+    public TaskScheduler(int threadPoolSize) {}
+    // Schedule task to run after \`delayMs\` milliseconds
+    public ScheduledTask schedule(Runnable task, long delayMs) {}
+    // Schedule task to run repeatedly at \`periodMs\` intervals
+    public ScheduledTask scheduleAtFixedRate(Runnable task, long initialDelayMs, long periodMs) {}
+    // Schedule with fixed delay between end of one run and start of next
+    public ScheduledTask scheduleWithFixedDelay(Runnable task, long initialDelayMs, long delayMs) {}
+    public void cancel(ScheduledTask task) {}
+    public void shutdown() {}
+}
+
+interface ScheduledTask {
+    boolean cancel();
+    boolean isCancelled();
+    long getNextExecutionTime();
+}
+\`\`\`
+
+## Key Entities
+- **DelayQueue<ScheduledTaskEntry>**: Priority queue ordering tasks by next execution time.
+- **Worker thread**: Polls DelayQueue; when a task becomes ready (delay expired), submits to thread pool.
+- **ExecutorService**: Runs the actual task logic in parallel.
+- **CancellationFlag**: AtomicBoolean per task; worker checks before executing.
+
+## Requirements
+1. Tasks execute no earlier than their scheduled time (bounded latency up to scheduling resolution).
+2. Recurring tasks re-enqueue themselves after each execution.
+3. Cancelled tasks are never executed (even if already in the queue).
+4. The scheduler thread efficiently sleeps until the next task is due (no polling).
+5. Thread pool handles concurrent execution of multiple ready tasks.
+
+> **Asked at:** Google, Amazon, Microsoft, Uber, Netflix, Quartz, LinkedIn`,
+    constraints: `- Up to 1,000,000 pending scheduled tasks.
+- Scheduling resolution: 1 millisecond.
+- Thread pool size: 1–100 threads.
+- Recurring task period minimum: 10 milliseconds.
+- cancel() on an already-executing task must not interrupt it (just prevent future recurrences).`,
+    hints: [
+      "Use a `DelayQueue<ScheduledTaskEntry>` where ScheduledTaskEntry implements Delayed with getDelay() returning time until execution.",
+      "Scheduler thread: `while (!shutdown) { ScheduledTaskEntry t = taskQueue.take(); // blocks until ready executorService.submit(t::execute); if (t.isRecurring()) taskQueue.put(t.nextOccurrence()); }`",
+      "For fixed-rate: next execution = lastScheduledTime + period (can overlap if task runs long). For fixed-delay: next execution = taskEndTime + delay.",
+      "Timer wheel (alternative): O(1) insertion and O(1) expiry check \u2014 array of buckets representing time slots; wheel advances every tick.",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Delayed Task Scheduler
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        DelayedTaskScheduler solution = new DelayedTaskScheduler();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class DelayedTaskScheduler {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public DelayedTaskScheduler() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Delayed Task Scheduler
+
+class DelayedTaskScheduler {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    DelayedTaskScheduler() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    DelayedTaskScheduler solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Delayed Task Scheduler
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class DelayedTaskScheduler {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new DelayedTaskScheduler();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "delayed-task-scheduler-tc1",
+        description: "Test case 1",
+        input: "schedule 1000 tasks with random delays 0-5000ms; thread pool=10",
+        expectedOutput: "All 1000 tasks execute within 10ms of their scheduled time; pool runs max 10 concurrently",
+        isHidden: false,
+      },
+      {
+        id: "delayed-task-scheduler-tc2",
+        description: "Test case 2",
+        input: "scheduleAtFixedRate(task, 0, 100ms); run for 1 second; cancel after 5th execution",
+        expectedOutput: "Task executes exactly 5 times (at ~0, 100, 200, 300, 400ms); no execution after cancel",
+        isHidden: true,
+      },
+    ],
+  },
+  {
+    id: "80",
+    slug: "concurrent-bloom-filter",
+    title: "Concurrent Bloom Filter",
+    difficulty: "Hard",
+    category: "Concurrency",
+    tags: ["Bloom Filter", "AtomicIntegerArray", "Lock-Free", "Probabilistic", "Bit Array"],
+    order: 80,
+    description: `## Problem Statement
+
+Design a **thread-safe, lock-free Bloom Filter** — a space-efficient probabilistic data structure that tells you if an element is 'definitely not in the set' or 'possibly in the set'. Multiple threads must concurrently add elements and query membership without data corruption.
+
+\`\`\`java
+class ConcurrentBloomFilter<T> {
+    // n = expected elements, fpp = target false positive probability
+    public ConcurrentBloomFilter(int expectedElements, double falsePositiveProbability) {}
+    // Thread-safe add
+    public void add(T item) {}
+    // Returns false = definitely NOT in set; true = POSSIBLY in set
+    public boolean mightContain(T item) {}
+    // Approximate current element count
+    public long approximateElementCount() {}
+    // False positive rate estimate given current population
+    public double currentFalsePositiveProbability() {}
+    // Merge two filters (union)
+    public ConcurrentBloomFilter<T> merge(ConcurrentBloomFilter<T> other) {}
+}
+\`\`\`
+
+## Key Entities
+- **AtomicIntegerArray bit array**: Backing bit array where bits are set atomically using CAS on word-level AtomicIntegers.
+- **k hash functions**: Typically k = (m/n) × ln(2) computed from desired FPP.
+- **m bits**: Total bit array size = -n × ln(fpp) / (ln(2))².
+- **LongAdder elementCount**: Tracks approximate insertions.
+
+## Requirements
+1. \`add()\` must be lock-free — no mutexes.
+2. \`mightContain()\` must never return false negative (false negatives are forbidden).
+3. False positive rate must be ≤ configured \`falsePositiveProbability\` when element count ≤ \`expectedElements\`.
+4. Thread-safe for concurrent adds and queries.
+5. Explain the hash function choice (MurmurHash3 or double hashing recommended).
+
+> **Asked at:** Google, Amazon, Facebook, Akamai, Cassandra (Apache), LinkedIn`,
+    constraints: `- 1 ≤ expectedElements ≤ 10^8
+- 0.0001 ≤ falsePositiveProbability ≤ 0.5
+- Lock-free: no synchronized blocks or ReentrantLock.
+- Must use at least 3 hash functions (k ≥ 3).
+- Bit array must be stored as AtomicIntegerArray (integers represent 32-bit words).`,
+    hints: [
+      "Bit index for the i-th hash: `int bitIndex = (int)(Math.abs(hash1 + i * hash2) % m)`. Use double hashing: hash1 = murmur.hash(item, seed1), hash2 = murmur.hash(item, seed2).",
+      "Set bit atomically: `int wordIdx = bitIndex / 32; int bitMask = 1 << (bitIndex % 32); do { int old = arr.get(wordIdx); } while (!arr.compareAndSet(wordIdx, old, old | bitMask));`",
+      "Check bit: `(arr.get(bitIndex/32) & (1 << (bitIndex%32))) != 0` \u2014 this is a simple read, no CAS needed.",
+      "Optimal k = (m/n) \u00d7 ln(2) \u2248 0.693 \u00d7 (m/n); optimal m = -n \u00d7 ln(fpp) / (ln(2))\u00b2 \u2248 -1.44 \u00d7 n \u00d7 log\u2082(fpp).",
+    ],
+    starterCode: {
+      java: `import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
+import java.util.concurrent.locks.*;
+import java.util.*;
+
+// Concurrent Bloom Filter
+// Implement the thread-safe solution below.
+
+public class Main {
+    public static void main(String[] args) throws InterruptedException {
+        ConcurrentBloomFilter solution = new ConcurrentBloomFilter();
+        // TODO: write your test here
+        System.out.println("Solution initialized. Start testing!");
+    }
+}
+
+class ConcurrentBloomFilter {
+    // TODO: Add synchronization primitives (locks, semaphores, etc.)
+    
+    public ConcurrentBloomFilter() {
+        // TODO: initialize your solution
+    }
+    
+    // TODO: implement your methods here
+}`,
+      cpp: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <semaphore>
+#include <atomic>
+#include <queue>
+#include <functional>
+using namespace std;
+
+// Concurrent Bloom Filter
+
+class ConcurrentBloomFilter {
+    // TODO: Add your synchronization primitives
+    mutex mtx;
+    condition_variable cv;
+    
+public:
+    ConcurrentBloomFilter() {
+        // TODO: initialize
+    }
+    
+    // TODO: implement your methods
+};
+
+int main() {
+    ConcurrentBloomFilter solution;
+    // TODO: spawn threads and test
+    cout << "Solution initialized." << endl;
+    return 0;
+}`,
+      javascript: `// Concurrent Bloom Filter
+// Note: JavaScript is single-threaded. Use Promise/async patterns to simulate concurrency.
+
+class ConcurrentBloomFilter {
+  constructor() {
+    // TODO: initialize shared state and synchronization helpers
+  }
+  
+  // TODO: implement your methods using Promises/async
+}
+
+// Test
+async function main() {
+  const solution = new ConcurrentBloomFilter();
+  // TODO: call methods with Promise.all to simulate concurrent access
+  console.log('Solution initialized.');
+}
+
+main().catch(console.error);`,
+    },
+    solution: {
+      java: `// Reference solution available after submission`,
+      cpp: `// Reference solution available after submission`,
+      javascript: `// Reference solution available after submission`,
+    },
+    testCases: [
+      {
+        id: "concurrent-bloom-filter-tc1",
+        description: "Test case 1",
+        input: "expectedElements=1000000, fpp=0.01; add 1M unique strings; query 100K non-added strings",
+        expectedOutput: "0 false negatives; ~1% false positives (~1000/100K); no data corruption under concurrent adds",
+        isHidden: false,
+      },
+      {
+        id: "concurrent-bloom-filter-tc2",
+        description: "Test case 2",
+        input: "100 threads concurrently adding 10000 items each (total 1M); simultaneous mightContain queries",
+        expectedOutput: "No crashes, no lost writes (bit-flip atomicity guaranteed); mightContain never returns false negative",
+        isHidden: true,
+      },
+    ],
+  },
 ];
 
 export function getProblemBySlug(slug: string): Problem | undefined {
