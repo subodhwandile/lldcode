@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Problem } from "@/lib/problems";
 import { Badge } from "@/components/ui/badge";
 import { Lightbulb, CheckCircle2, Lock, BookOpen, List } from "lucide-react";
@@ -74,7 +75,7 @@ export function ProblemPanel({ problem }: ProblemPanelProps) {
         {activeTab === "description" && (
           <div className="px-5 py-5">
             <div className="prose prose-sm">
-              <ReactMarkdown>{problem.description}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{problem.description}</ReactMarkdown>
             </div>
             {problem.constraints && (
               <div className="mt-6">
