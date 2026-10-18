@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Code2, LogOut, User, LayoutDashboard } from "lucide-react";
+import { Code2, LogOut, User } from "lucide-react";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -32,8 +33,10 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Auth */}
+          {/* Right side */}
           <div className="flex items-center gap-3">
+            <ThemeSwitcher />
+
             {session ? (
               <>
                 <Link href="/profile">
@@ -58,9 +61,7 @@ export function Navbar() {
               </>
             ) : (
               <Link href="/signin">
-                <Button variant="primary" size="sm">
-                  Sign In
-                </Button>
+                <Button variant="primary" size="sm">Sign In</Button>
               </Link>
             )}
           </div>

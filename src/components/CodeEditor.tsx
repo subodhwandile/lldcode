@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Play, ChevronDown, RotateCcw, Save, Send } from "lucide-react";
+import { useTheme } from "@/components/ThemeProvider";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -39,6 +40,8 @@ function persistCode(slug: string, lang: string, code: string) {
 }
 
 export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
+  const { theme } = useTheme();
+  const monacoTheme = (theme === "paper" || theme === "notebook") ? "vs-light" : "vs-dark";
   const [language, setLanguage] = useState("java");
   const [code, setCode] = useState(() => loadSaved(problemSlug, "java", starterCode["java"] || ""));
   const [output, setOutput] = useState("");
@@ -219,7 +222,7 @@ export function CodeEditor({ problemSlug, starterCode }: CodeEditorProps) {
           language={currentLang.monaco}
           value={code}
           onChange={(val) => setCode(val || "")}
-          theme="vs-dark"
+          theme={monacoTheme}
           options={{
             fontSize: 13,
             fontFamily: "var(--font-geist-mono), 'Fira Code', Consolas, monospace",
